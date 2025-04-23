@@ -1,0 +1,30 @@
+# https://www.acmicpc.net/problem/2178
+# 미로탐색 / 2178번
+
+from collections import deque
+
+N, M = map(int, input().split())
+graph = [list(map(int, input().strip())) for _ in range(N)]
+
+arr = [[0] * M for _ in range(N)]
+arr[0][0] = 1
+graph[0][0] = 0
+
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+q = deque()
+q.append((0, 0))
+
+
+while q:
+    r, c = q.popleft()
+    for i in range(4):
+        nr = r + dx[i]
+        nc = c + dy[i]
+        if 0<=nr<N and 0<=nc<M and graph[nr][nc] == 1:
+            arr[nr][nc] = arr[r][c] + 1
+            graph[nr][nc] = 0
+            q.append((nr, nc))
+
+print(arr[N-1][M-1])
