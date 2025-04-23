@@ -1,0 +1,53 @@
+#https://www.acmicpc.net/problem/7569
+#토마토 / 7569번
+
+from collections import deque
+
+dz = [-1, 1, 0, 0, 0, 0]
+dx = [0, 0, -1, 1, 0, 0]
+dy = [0, 0, 0, 0, -1, 1]
+
+M, N, H = map(int, input().split())
+days = 0
+tomatoes = [[list(map(int, input().split())) for _ in range(N)] for _ in range(H)]
+
+q = deque()
+
+complete = True
+for k in range(H):
+    for i in range(N):
+        for j in range(M):
+            if tomatoes[k][i][j] ==0:
+                complete = False
+            if tomatoes[k][i][j] == 1:
+                q.append((k, i, j))
+
+if complete:
+    print('0')
+    exit()
+
+while q:
+    b, r, c = q.popleft()
+    for i in range(6):
+        nb = b + dz[i]
+        nr = r + dx[i]
+        nc = c + dy[i]
+        if 0<=nb<H and 0<=nr<N and 0<=nc<M and tomatoes[nb][nr][nc] == 0:
+            tomatoes[nb][nr][nc] = tomatoes[b][r][c] + 1
+            q.append((nb, nr, nc))
+
+max_days = -1
+
+for k in range(H):
+    for i in range(N):
+        for j in range(M):
+            if tomatoes[k][i][j] == 0:
+                print('-1')
+                exit()
+            if tomatoes[k][i][j] > max_days:
+                max_days = tomatoes[k][i][j]
+
+print(max_days-1)
+
+
+
