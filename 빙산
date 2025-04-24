@@ -1,0 +1,144 @@
+# https://www.acmicpc.net/problem/2573
+# 빙산 / 2573번
+
+# 빙산이 두 덩이 '이상'인 최초의 경우
+# 각 칸의 들어가는 수는 0이상 10이하 - while문 돌리고 두 덩이 이상이면 break
+# 얼음이 있으면 인접한 물의 수를 세서 저장해 뒀다가 한 번에 업데이트 -> 수시 업데이트 시 같은 턴에서 물이 되어버리면 반복해서 녹을 가능성 있음
+
+
+import copy
+from collections import deque
+
+'''
+시간초과 코드
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+
+N, M = map(int, input().split())
+ice = [list(map(int, input().split())) for _ in range(N)]
+years = 0
+
+def bfs():
+    cnt = 0
+    temp_ice = [row[:] for row in ice]
+    # print(temp_ice)
+    q = deque()
+    for i in range(N):
+        for j in range(M):
+            if temp_ice[i][j] > 0:
+                cnt += 1
+                q.append((i, j))
+                temp_ice[i][j] = 0
+                while q:
+                    r, c = q.popleft()
+                    for d in range(4):
+                        nr = r + dx[d]
+                        nc = c + dy[d]
+                        if 0<=nr<N and 0<=nc<M and temp_ice[nr][nc] > 0:
+                            q.append((nr, nc))
+                            temp_ice[nr][nc] = 0
+
+    return cnt
+
+while True:
+    if bfs()>=2:
+        print(years)
+        break
+        
+    # 인접 물 개수 세서 저장하기
+    years += 1
+    melt = [[0]*M for _ in range(N)]
+    for i in range(N):
+        for j in range(M):
+            if ice[i][j] > 0:
+                cnt = 0
+                for d in range(4):
+                    nr = i + dx[d]
+                    nc = j + dy[d]
+                    if 0<=nr<N and 0<=nc<M and ice[nr][nc] == 0:
+                        cnt += 1
+                melt[i][j] = cnt
+
+
+    # 센 물 개수 ice에 적용하기
+    for i in range(N):
+        for j in range(M):
+            if ice[i][j] < melt[i][j]:
+                ice[i][j] = 0
+            else:
+                ice[i][j] -= melt[i][j]
+
+'''
+
+# 얼음이 있는 좌표만 저장하기
+# 빙산 덩어리 수 세기 -> copy가 아니라 visited를 이용하기
+# 빙산이 0인 경우의 수 고려하기
+
+from collections import deque
+
+N, M = map(int, input().split())
+ice = [list(map(int, input().split())) for _ in range(N)]
+
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+years = 0
+
+# 현재 얼음이 있는 좌표만 저장
+ice_pos = set((i, j) for i in range(N) for j in range(M) if ice[i][j] > 0)
+
+
+# 빙산 덩어리 수 세기
+def count_icebergs():
+    visited = [[False] * M for _ in range(N)]
+    count = 0
+
+    for r, c in ice_pos:
+        if not visited[r][c]:
+            q = deque()
+            q.append((r, c))
+            visited[r][c] = True
+            count += 1
+
+            while q:
+                x, y = q.popleft()
+                for d in range(4):
+                    nx = x + dx[d]
+                    ny = y + dy[d]
+                    if 0 <= nx < N and 0 <= ny < M and not visited[nx][ny] and ice[nx][ny] > 0:
+                        visited[nx][ny] = True
+                        q.append((nx, ny))
+    return count
+
+
+while True:
+    cnt = count_icebergs()
+
+    if cnt >= 2:
+        print(years)
+        break
+    elif cnt == 0:
+        print(0)
+        break
+
+    melt = [[0] * M for _ in range(N)]
+
+    # 인접한 물의 개수 세기
+    for r, c in ice_pos:
+        for d in range(4):
+            nr = r + dx[d]
+            nc = c + dy[d]
+            if 0 <= nr < N and 0 <= nc < M and ice[nr][nc] == 0:
+                melt[r][c] += 1
+
+    new_ice_pos = set()
+
+    # 한 번에 녹이기 + 얼음 좌표 추적
+    for r, c in ice_pos:
+        ice[r][c] = max(ice[r][c] - melt[r][c], 0)
+        if ice[r][c] > 0:
+            new_ice_pos.add((r, c))
+
+    ice_pos = new_ice_pos
+    years += 1
