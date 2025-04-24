@@ -1,0 +1,28 @@
+# https://www.acmicpc.net/problem/2606
+# 바이러스 / 2606번
+
+from collections import Counter
+from collections import deque
+
+N = int(input()) # 컴퓨터 개수
+M = int(input()) # 네트워크 수
+
+connections = [[] for _ in range(N+1)]
+visited = [0]*(N+1)
+for _ in range(M):
+    a, b = map(int, input().split())
+    connections[a].append(b)
+    connections[b].append(a)
+
+q = deque()
+q.append(1)
+visited[1] = 1
+
+while q:
+    num = q.popleft()
+    for i in connections[num]:
+        if visited[i] == 0:
+            visited[i] = 1
+            q.append(i)
+
+print(sum(visited)-1)
