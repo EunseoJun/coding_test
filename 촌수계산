@@ -1,0 +1,41 @@
+# https://www.acmicpc.net/problem/2644
+# 2644번 / 촌수계산
+
+from collections import deque
+
+N = int(input())
+relation = [[] for _ in range(N+1)]
+
+dist = 0
+
+p1, p2 = map(int, input().split())
+turn = int(input())
+
+for _ in range(turn):
+    a, b = map(int, input().split())
+    relation[a].append(b)
+    relation[b].append(a)
+
+q = deque()
+q.append(p1)
+
+if p1 == p2:
+    print('0')
+    exit()
+
+visited = [False]*(N+1)
+visited[p1] = True
+
+while q:
+    for _ in range(len(q)):
+        x = q.popleft()
+        if x == p2:
+            print(dist)
+            exit()
+        for idx in relation[x]:
+            if not visited[idx]:
+                visited[idx] = True
+                q.append(idx)
+    dist += 1
+
+print('-1')
