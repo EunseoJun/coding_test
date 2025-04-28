@@ -1,0 +1,37 @@
+# https://www.acmicpc.net/problem/1697
+# 1697번 / 숨바꼭질
+
+# visited를 할 때 꼭 list가 필요한게 아니라면 set으로 처리하자 연산속도가 훨씬 빠름
+# list -> O(n), set -> O(1)
+
+from collections import deque
+
+N, M = map(int, input().split())
+
+q = deque()
+q.append(N)
+visited = set()
+visited.add(N)
+cnt = 0
+if N>M:
+    print(N-M)
+    exit()
+else:
+    while q:
+        for i in range(len(q)):
+            x = q.popleft()
+            if x == M:
+                print(cnt)
+                exit()
+            if 0<=x-1<=100000 and not (x-1) in visited:
+                q.append(x-1)
+                visited.add(x-1)
+            if 0<=x+1<=100000 and not (x+1) in visited :
+                q.append(x+1)
+                visited.add(x+1)
+            if 0 <= 2*x <= 2*M and not (2*x) in visited:
+                q.append(2*x)
+                visited.add(2*x)
+        cnt += 1
+
+print(-1)
