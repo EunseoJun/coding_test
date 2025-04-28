@@ -1,0 +1,34 @@
+# https://www.acmicpc.net/problem/5014
+# 5014번 / 스타트링크
+
+from collections import deque
+
+# 총 층, 강호위치, 스타트링크 위치
+F, S, G, U, D = map(int, input().split())
+
+visited = [False] * (F+1)
+cnt = 0
+
+q = deque()
+q.append(S)
+visited[S] = True
+
+while q:
+    for i in range(len(q)):
+        x = q.popleft()
+        if x == G:
+            print(cnt)
+            exit()
+        if 0<x+U<=F and visited[x+U] != True:
+            q.append(x+U)
+            visited[x+U] = True
+        if 0<x-D<=F and visited[x-D] != True:
+            q.append(x-D)
+            visited[x-D] = True
+    cnt += 1
+
+print('use the stairs')
+
+
+
+
