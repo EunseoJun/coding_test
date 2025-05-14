@@ -1,0 +1,40 @@
+# https://www.acmicpc.net/problem/19942
+# 19942번 / 다이어트
+
+from itertools import combinations
+
+# 입력
+n = int(input())
+mp, mf, ms, mv = map(int, input().split()) # 리스트로 받지 말고 개별 값으로 받아서 비교하기
+ingredients = [list(map(int, input().split())) for _ in range(n)]
+
+min_cost = float('inf')
+result = []
+
+# 1개부터 n개까지의 모든 조합 탐색
+for r in range(1, n + 1):
+    for comb in combinations(range(n), r):  # 재료의 인덱스 조합
+        tp = tf = ts = tv = cost = 0
+        for idx in comb:
+            p, f, s, v, c = ingredients[idx]
+            tp += p
+            tf += f
+            ts += s
+            tv += v
+            cost += c
+
+        if tp >= mp and tf >= mf and ts >= ms and tv >= mv:
+            if cost < min_cost:
+                min_cost = cost
+                result = [list(comb)]
+            elif cost == min_cost:
+                result.append(list(comb))
+
+# 결과 출력
+if not result:
+    print(-1)
+else:
+    result.sort()  # 사전순
+    answer = result[0]
+    print(min_cost)
+    print(' '.join(str(i + 1) for i in answer))
