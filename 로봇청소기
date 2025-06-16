@@ -1,0 +1,56 @@
+# 로봇청소기
+# https://www.acmicpc.net/problem/14503
+
+# N*M 크기의 직사각형, 이동방향은 동서남북
+# 1. 현재 칸이 청소되지 않았으면 청소
+# 2. 주변 4칸 중 청소되지 않은 빈 칸이 없으면 => def clean_check
+# 2-1. 바라보는 방향을 유지한 채로 한 칸 후진할 수 있으면 한 칸 후진, 1번으로 돌아감=>clean_check = -1
+# 2-2. 후진할 수 없으면 작동 멈추기
+# 3. 4칸 중 청소되지 않은 칸이 있는 경우
+# 3-1. 반시계로 90도 회전
+# 3-2. 앞쪽 칸이 청소되지 않은 빈 칸인 경우 한칸 전진
+# => 작동을 멈출 때까지 청소하는 칸의 개수 출력 => ans = 0
+
+N, M = map(int, input().split())
+bi, bj, bd = list(map(int, input().split()))
+arr = [list(map(int, input().split())) for _ in range(N)]
+ans = 0
+
+#북동남서
+dx = [-1, 0, 1, 0]
+dy = [0, 1, 0, -1]
+
+def clean_check(ci, cj):
+    for dr in range(4):
+        ni, nj = ci+dx[dr], cj+dy[dr]
+        if arr[ni][nj] == 0:
+            return True
+    return False
+
+while True:
+    # 1. 현재 칸이 청소되지 않았으면 청소
+    if arr[bi][bj]==0:
+        ans += 1
+        arr[bi][bj] = 2
+    # 2. 주변 4칸 중 청소되지 않은 빈 칸이 없으면 => def clean_check
+    cleaning = clean_check(bi,bj)
+    if not clean_check(bi, bj):
+        # 2-1. 바라보는 방향을 유지한 채로 한 칸 후진할 수 있으면 한 칸 후진, 1번으로 돌아감=>clean_check = -1
+        hi, hj = bi + (-1*dx[bd]), bj + (-1*dy[bd])
+        if arr[hi][hj] != 1:
+            bi, bj = hi, hj
+        # 2-2. 후진할 수 없으면 작동 멈추기
+        else:
+            print(ans)
+            exit()
+    else:
+        # 3. 4칸 중 청소되지 않은 칸이 있는 경우
+        # 3-1. 반시계로 90도 회전
+        bd = (bd-1)%4
+        ni, nj = bi+dx[bd], bj+dy[bd]
+        # 3-2. 앞쪽 칸이 청소되지 않은 빈 칸인 경우 한칸 전진
+        if arr[ni][nj] == 0:
+            bi, bj = ni, nj
+
+# => 작동을 멈출 때까지 청소하는 칸의 개수 출력 => ans = 0
+
