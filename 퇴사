@@ -1,0 +1,31 @@
+# 퇴사
+# https://www.acmicpc.net/problem/14501
+
+# 백준이 퇴사 축하한다
+# N+1일 째 되는 날 퇴사를 하기 위해서, 남은 N일동안 최대한 많은 상담
+# 상담하는데 걸리는 기간 T, 뒷 상담은 못하게 됨
+# N+1일에는 회사에 없음
+# 백준이의 최대 수익 구하기
+
+def dfs(n, sm):
+    global ans
+    if n>=N:
+        ans = max(ans, sm)
+        return
+    if n + T[n] <= N:  # 상담하는 경우(퇴사일전 완료 가능할 때만 상답)
+        dfs(n + T[n], sm + P[n])
+    dfs(n + 1, sm)
+
+#입력
+# N일 -> N+1일 퇴사
+N = int(input())
+T = [0]*N
+P = [0]*N
+for i in range(N):
+    T[i], P[i] = map(int, input().split())
+
+ans = 0
+dfs(0, 0)
+print(ans)
+
+
