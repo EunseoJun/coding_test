@@ -1,0 +1,48 @@
+# 톱니바퀴 14891
+
+from collections import deque
+
+# 입력 처리
+wheel = [deque(map(int, input().strip())) for _ in range(4)]
+K = int(input())
+turns = [list(map(int, input().split())) for _ in range(K)]
+
+# 톱니 회전 함수
+def rotate(idx, direction):
+    if direction == 1:  # 시계
+        wheel[idx].appendleft(wheel[idx].pop())
+    else:  # 반시계
+        wheel[idx].append(wheel[idx].popleft())
+
+# 명령 처리
+for idx, dr in turns:
+    idx -= 1  # 0-based 인덱스
+    rotate_dir = [0] * 4  # 각 톱니바퀴의 회전 방향 기록
+    rotate_dir[idx] = dr
+
+    # 왼쪽 체크
+    for i in range(idx - 1, -1, -1):
+        if wheel[i][2] != wheel[i+1][6]:
+            rotate_dir[i] = -rotate_dir[i+1]
+        else:
+            break
+
+    # 오른쪽 체크
+    for i in range(idx + 1, 4):
+        if wheel[i-1][2] != wheel[i][6]:
+            rotate_dir[i] = -rotate_dir[i-1]
+        else:
+            break
+
+    # 회전 적용
+    for i in range(4):
+        if rotate_dir[i] != 0:
+            rotate(i, rotate_dir[i])
+
+# 점수 계산
+score = 0
+for i in range(4):
+    if wheel[i][0] == 1:
+        score += (1 << i)
+
+print(score)
