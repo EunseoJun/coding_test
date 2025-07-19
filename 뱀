@@ -1,0 +1,72 @@
+# 뱀
+# https://www.acmicpc.net/problem/3190
+
+## 회고
+# 보통 안맞는다 싶으면 정신 차리고 좌표(dx, dy) 제대로 썼나부터 확인하기, 항상 이걸로 틀림
+# 90도 방향 전환할 때 %4임. 3 아님!!!!!! 제발
+
+# 게임 시작할 때 뱀은 맨 위 맨 좌측(0,0)
+# 몇 칸에는 사과, 길이는 1
+# 몸을 늘려 머리를 다음 칸에 위치, 벽 부딪힘, 자기 몸하고 부딪히면 게임 끝
+# 이동한 칸에 사과 없으면=>몸 길이 줄여서 꼬리 위치 칸 비우기
+# 사과 있으면 몸 안줄어듬! 몸길이 늘어남
+
+from collections import deque
+
+dx = [-1, 0, 1, 0] # 상우하좌
+dy = [0, 1, 0, -1]
+
+N = int(input())
+arr = [[0]*N for _ in range(N)]
+K = int(input()) #사과 개수
+for _ in range(K):
+    i, j = map(int, input().split())
+    i, j = i-1, j-1
+    arr[i][j] = 1
+
+L = int(input()) # 뱀 방향 변환 횟수
+move = deque()
+for _ in range(L):
+    t, d = map(str, input().split())
+    move.append((int(t), d)) # turn 그냥 1부터 시작
+
+si, sj = 0, 0 # 초기 뱀머리 위치
+sb = deque() # 뱀이 차지하고 있는 영역
+sb.append((0,0))
+sd = 1 # 초기 방향 오른쪽, D=>오른쪽, L=>왼쪽 90도, 상우하좌
+
+turn = 1
+# while문 돌면서
+while True:
+    # 현재 턴에 이동 방향 바뀌나 확인하고 해당하면 바꾼 뒤 걔 pop해버리기
+    if len(move) == 0:
+        pass
+    elif move[0][0] == turn-1:
+        _, dr = move.popleft()
+        if dr == 'D': #오른쪽
+            sd = (sd+1)%4
+        elif dr == 'L':
+            sd = (sd-1)%4
+
+    # 뱀 머리 이동해보기
+    nsi, nsj = si+dx[sd], sj+dy[sd]
+    # 종료 조건 확인=> 벽이거나 내 몸좌표다 => 종료
+    if 0<=nsi<N and 0<=nsj<N: pass
+    else:
+        break
+    if (nsi, nsj) in sb:    break
+    # 종료 X => 해당 칸 사과 확인
+    if arr[nsi][nsj] == 1:
+        # 사과 있 => 사과 없애기, 머리 몸에다가 insert(0, (머리좌표)) => 머리 업데이트
+        arr[nsi][nsj] = 0
+        sb.insert(0, (nsi,nsj))
+        si, sj = nsi, nsj
+    # 사과 없 => 머리 몸에다가 put(0), pop() 머리 업데이트
+    else:
+        sb.insert(0, (nsi, nsj))
+        si, sj = nsi, nsj
+        sb.pop()
+
+    turn += 1
+
+print(turn)
