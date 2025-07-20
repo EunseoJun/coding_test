@@ -1,0 +1,49 @@
+# 치킨 배달
+# https://www.acmicpc.net/problem/15686
+
+# 크기 N*N인 도시, 빈 칸, 치킨집, 집으로 이루어짐
+# 도시는 r,c => 1부터 시작함
+# 치킨거리=>집에서 가장 가까운 치킨집의 거리
+# 도시 치킨거리 => 모든 치킨 거리의 합
+# 거리는 맨해튼으로 구함 제발제발 까먹지 마라 제발
+# 최대 M개의 가게만 남기고 폐업해야 함. 도시의 치킨거리가 가장 작게되는지 구하기
+
+# 회고
+# 케이스 잘 뽑아놓고 원래 변수 쓰는 일 없게하기 => 케이스 별 최소거리 구하는데 이상하게 값이 작다?
+from itertools import *
+
+N, M = map(int, input().split())
+arr = []
+chicken = []
+home = []
+for i in range(N):
+    temp = list(map(int, input().split()))
+    if 1 in temp:
+        for j in range(N):
+            if temp[j] == 1:
+                home.append((i, j))
+    if 2 in temp:
+        for j in range(N):
+            if temp[j] == 2:
+                chicken.append((i, j))
+    arr.append(temp)
+
+min_store = len(chicken)
+min_dist = N*N*2
+
+for num in range(1, M+1):
+    for case in combinations(chicken, num):
+        temp_chicken_dist = 0 # 치킨집 경우의 수에 대한 임시 min_dist
+        for h in home: #home 순회하면서 거리 계산
+            hi, hj = h
+            per_min_dist = N*N # 거리는 크게 초기화해두기
+            for c in case: # 변수 주의!!!!!! 제발
+                ci, cj = c
+                dist = abs(hi-ci) + abs(hj-cj)
+                if dist < per_min_dist:
+                    per_min_dist = dist
+            temp_chicken_dist += per_min_dist
+        if temp_chicken_dist < min_dist:
+            min_dist = temp_chicken_dist
+
+print(min_dist)
