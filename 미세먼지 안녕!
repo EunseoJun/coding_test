@@ -1,0 +1,94 @@
+# 미세먼지 안녕!
+# https://www.acmicpc.net/problem/17144
+
+# 회고
+# 정말로 구현 상세를 모두 생각 => 구현 시작할것. 아니면 못품
+# python으로는 시간초과
+
+# 집크기 R*C => 1부터 시작
+# 미세먼지 양 실시간 모니터링
+# 공청은 항상 1번 열에 설치 크기는 두 행 차지.
+# 1. 1초간 확산, 미세먼지는 네 방향으로 확산, 인접 방향에 공청, 칸 없으면 확산 X
+    # 확산되는 양은 //5 => 확산되고 남은 양은 기존 - (양//5)*확산 방향 개수
+# 2. 공청 작동
+    # 위쪽 공청의 바람은 반시계, 아래쪽은 시계방향 => 바람 방향대로 모두 한 칸씩 이동
+    # 공청으로 들어간 미세먼지는 모두 제거됨
+# T초 후 방에 남아있는 미세먼지 양 구하기
+from collections import deque
+
+dx = [1, 0, -1, 0]
+dy = [0, 1, 0, -1]
+
+R, C, T = map(int, input().split()) # T = 몇 초인지
+arr = []
+air = []
+for i in range(R):
+    temp = list(map(int, input().split()))
+    if -1 in temp:
+        for j in range(C):
+            if temp[j] == -1:
+                air.append((i, j))
+    arr.append(temp)
+
+for turn in range(T):
+    # 확산
+    # arr 돌면서 인접 칸 확산
+    temp_arr = [[0]*C for _ in range(R)]
+    for i in range(R):
+        for j in range(C):
+            if arr[i][j] > 0:
+                cnt = 0
+                for dr in range(4):
+                    ni, nj = i+dx[dr], j+dy[dr]
+                    if 0<=ni<R and 0<=nj<C and arr[ni][nj] != -1:
+                        cnt += 1
+                        temp_arr[ni][nj] = temp_arr[ni][nj] + (arr[i][j] // 5)
+                temp_arr[i][j] = temp_arr[i][j] + arr[i][j] - (cnt * (arr[i][j] // 5))
+    for i, j in air:
+        temp_arr[i][j] = -1
+    arr = [row[:] for row in temp_arr]
+
+    # 2. 시계, 반시계 돌리기
+    # air의 1번은 반시계 우>상>좌>하
+    for idx in range(2):
+        direct = 1
+        q = deque()
+        coor = []
+        value = deque()
+        if idx == 0:
+            tdr = 1
+        else:
+            tdr = -1
+        ai, aj = air[idx]
+        q.append((ai, aj+1))
+        while q:
+            ci, cj = q.popleft()
+            if (ci,cj) == (ai, aj): break
+            ni, nj = ci+dx[direct], cj+dy[direct]
+            if 0<=ni<R and 0<=nj<C:
+                # 범위 안이면 coor이랑 value에 값 넣고 q에 넣기!
+                coor.append((ci, cj))
+                value.append(arr[ci][cj])
+                q.append((ni, nj))
+                # print('q: ', q)
+            else:
+                # dr 방향 바꾸고 ni, nj 다시 구하고 위랑 똑같이
+                direct = (direct+tdr)%4
+                ni, nj = ci+dx[direct], cj+dy[direct]
+                coor.append((ci, cj))
+                value.append(arr[ci][cj])
+                # print('q', q)
+                q.append((ni, nj))
+        # 값 빼고 앞에 0 삽입
+        value.pop()
+        value.insert(0, 0)
+        for i, j in coor:
+            v = value.popleft()
+            arr[i][j] = v
+
+ans = 0
+for i in range(R):
+    for j in range(C):
+        ans += arr[i][j]
+
+print(ans+2)
