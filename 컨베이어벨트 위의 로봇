@@ -1,0 +1,41 @@
+# 컨베이어 벨트 위의 로봇
+# https://www.acmicpc.net/problem/20055
+#회고: 빡구현 자체는 할 줄 아는데, 문제 자체를 잘못 이해하는 경우가 많다. 더 꼼꼼하게 읽고 한 번에 구현하는 연습이 필요
+
+
+from collections import deque
+
+N, K = map(int, input().split()) # 벨트 길이, 내구도가 0인 칸의 개수
+belt_power = deque()
+temp = list(map(int, input().split()))
+
+belt_power.extend(temp)
+belt = deque()
+belt.extend([0] * (N * 2))
+
+cnt = 0
+
+while True:
+    cnt += 1
+    # 2. 컨베이어 벨트랑 로봇 회전
+    belt_power.appendleft(belt_power.pop())
+    belt.appendleft(belt.pop())
+    belt[N-1] = 0
+
+    # 3. 로봇 이동 (N-2 ~ 0 순서로 이동해야 함)
+    for i in range(N-2, -1, -1):
+        if belt[i] == 1 and belt[i+1] == 0 and belt_power[i+1] > 0:
+            belt[i] = 0
+            belt[i+1] = 1
+            belt_power[i+1] -= 1
+    belt[N-1] = 0  # 내리는 위치 도착 로봇 제거 (이동 후에도 한 번 더)
+
+    # 1. 올리는 위치에 로봇 올리기
+    if belt[0] == 0 and belt_power[0] > 0:
+        belt[0] = 1
+        belt_power[0] -= 1
+
+    # 종료 조건
+    if belt_power.count(0) >= K:
+        print(cnt)
+        break
