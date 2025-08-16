@@ -1,0 +1,39 @@
+# 유기농 배추
+# http://acmicpc.net/problem/1012
+
+from collections import deque
+
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+T = int(input()) # 테스트 케이스
+
+for turn in range(T):
+    areaCnt = 0
+
+    n, m, b = map(int, input().split()) # 세로, 가로, 심어진 배추 개수
+    arr = [[0]*m for _ in range(n)]
+    v = [[0]*m for _ in range(n)]
+
+    for _ in range(b):
+        ci, cj = map(int, input().split())
+        arr[ci][cj] = 1
+
+    for i in range(n): #row
+        for j in range(m): # column
+            if arr[i][j] == 1 and v[i][j] == 0:
+                q = deque()
+                areaCnt += 1
+                v[i][j] = 1
+                q.append((i, j))
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<n and 0<=nj<m and v[ni][nj] == 0 and arr[ni][nj] == 1:
+                            v[ni][nj] = 1
+                            q.append((ni, nj))
+
+    print(areaCnt)
+
+
