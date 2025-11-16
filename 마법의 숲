@@ -1,0 +1,137 @@
+# # 마법의 숲 탐색
+#
+# 정령들이 R*C의 형태의 숲을 탐색, 십자 모양의 골렘을 타고 내려감
+# K명의 정령은 각자 골렘을 타고 숲을 탐색함, 골렘에서 내릴 때는 정해진 출구를 통해서만 가능
+# 초기 골렘의 출구 -> 0~3(북,동,남,서)
+# 1. 남쪽으로 한 칸 내려감
+# 2. 안되면 서쪽 방향으로 회전하면서 내려감-출구가 왼쪽으로 회전+좌로 한 칸, 내려가기
+# 2-1. 좌의 3칸+좌하의 2칸이 비어있어야 함
+# 3. 안되면 동쪽 방향으로 회전하면서 내려감-출구가 오른쪽으로 회전+우로 한칸, 내려가기
+# 3-1. 우의 3칸+우하의 2칸이 비어있어야 함
+# 4. 골렘은 이동이 가능/골렘이 이동할 수 있는 가장 남쪽일 때 + 골렘의 몸이 숲의 밖이 아닐 때
+# 4-1. 골렘의 몸이 숲 밖이면 내부를 초기화하고 다음 골렘 시작
+# 4-2. 골렘은 타 골렘으로 이동이 가능 + 골렘이 도달할 수 있는 하단까지 내려가기, 그 후 정령들이 최종 위치하는 행의 총합 출력
+
+# 251116: 약 6시간
+# 회고
+# 틀릴 때
+# 1.각종 조건식이 정말 올바른지 확인하기
+# 2. 좌표 값 조작부에 오타 없는지 확인하기
+
+from collections import deque
+
+dx = [-1, 0, 1, 0] # 북동남서-상우하좌
+dy = [0, 1, 0, -1]
+
+R, C, K = map(int, input().split())
+start = [list(map(int, input().split())) for _ in range(K)]
+for s in range(len(start)):
+    start[s][0] -= 1
+v = [[0]*C for _ in range(R+3)] # 시작위치 잡기 위해서 +3
+ve = [[0]*C for _ in range(R+3)] # 시작위치 잡기 위해서 +3
+cnt = 0
+
+def check_space(ci, cj, ex, d):
+    if d == 1:
+        check = [(1,-1), (2,0), (1,1)]
+        for i,j in check:
+            ni, nj = ci+i, cj+j
+            if 0<=ni<(R+3) and 0<=nj<C and v[ni][nj]==0:
+                pass
+            else:
+                return False
+        return True
+    elif d == 2:
+        check = [(0, -2), (-1, -1), (1, -1), (1, -2), (2, -1)]
+        for i, j in check:
+            ni, nj = ci + i, cj + j
+            if 0 <=ni<(R+3) and 0 <=nj< C and v[ni][nj] == 0:
+                pass
+            else:
+                return False
+        return True
+    elif d == 3:
+        check = [(0, 2), (-1, 1), (1, 1), (2, 1), (1, 2)]
+        for i, j in check:
+            ni, nj = ci + i, cj + j
+            if 0 <=ni<(R+3) and 0 <=nj< C and v[ni][nj] == 0:
+                pass
+            else:
+                return False
+        return True
+
+def move(gi, gj, e):
+    mi = 0
+    mv = [[0] * C for _ in range(R + 3)]
+    mv[gi][gj] = 1
+    q = deque()
+    coor = set()
+    visit = []
+    q.append((gi, gj, visit))
+    while q:
+        ci, cj, cv = q.popleft()
+        mi = max(mi, ci)
+        for dr in range(4):
+            ni,nj = ci+dx[dr], cj+dy[dr]
+            nv = cv[:]
+            if 3<=ni<(R+3) and 0<=nj<C and ((ni, nj) not in cv) and mv[ni][nj]==0:
+                # 1. 같은 골렘 내 이동(조건: 좌표, 같은 골렘 내인지, 이미 방문한 곳 아닌지)
+                if v[ni][nj]==v[ci][cj] and v[ni][nj] != 0:
+                    nv.append((ni, nj))
+                    q.append((ni, nj, nv))
+                    mv[ni][nj] = 1
+                # 2. 다른 골렘 이동+출구O(조건: 좌표, 다른 골렘 '내'인지(현재와 다른 숫자이면서 0이 아님), 출구인지, 이미 방문X)
+                # elif v[ni][nj] != v[ci][cj] and ve[ci][cj]==-1*(v[ci][cj]) and v[ni][nj] != 0:
+                elif v[ni][nj] != v[ci][cj] and v[ci][cj] != 0 and ve[ci][cj] == -v[ci][cj] and v[ni][nj] != 0:
+                    nv.append((ni, nj))
+                    q.append((ni, nj, nv))
+                    mv[ni][nj] = 1
+
+    return mi
+
+for idx in range(len(start)):
+    gi, gj = 0, 0
+    gm, e = start[idx]
+    q = deque()
+    q.append((1, gm, e))
+    while q:
+        ci, cj, ex = q.popleft()
+        if check_space(ci, cj, ex, 1): # 남(하)
+            ni, nj, nex = ci+1, cj, ex
+            q.append((ni, nj, nex))
+        elif check_space(ci, cj, ex, 2): # 서(좌)
+            ni, nj, nex = ci+1, cj-1, (ex-1)%4
+            q.append((ni, nj, nex))
+        elif check_space(ci, cj, ex, 3): # 동(우)
+            ni, nj, nex = ci+1, cj+1, (ex+1)%4
+            q.append((ni, nj, nex))
+        else:
+            # v에 골렘 위치 넣기
+            gi, gj = ci, cj
+            e = ex
+            # print(gi, gj, 'e: ', e) # 좌표 확인용 변수
+            v[gi][gj] = idx+1
+            for dr in range(4):
+                ni, nj = gi+dx[dr], gj+dy[dr]
+                v[ni][nj] = idx+1
+            ve[gi + dx[e]][gj + dy[e]] = -1 * (idx+1)
+            # print(ve)
+            # print(v)
+    # 4. 골렘은 이동이 가능/골렘이 이동할 수 있는 가장 남쪽일 때 + 골렘의 몸이 숲의 밖이 아닐 때
+    # 4-1. 골렘의 몸이 숲 밖이면 내부를 초기화하고 다음 골렘 시작
+    init = False
+    for dr in range(4):
+        ni, nj = gi+dx[dr], gj+dy[dr]
+        if 3<=ni<(R+3) and 0<=nj<C:
+            pass
+        else:
+            init = True
+            v = [[0] * C for _ in range(R + 3)]  # 시작위치 잡기 위해서 +3
+            ve = [[0] * C for _ in range(R + 3)]
+            break
+    # 4-2. 골렘은 타 골렘으로 이동이 가능 + 골렘이 도달할 수 있는 하단까지 내려가기, 그 후 정령들이 최종 위치하는 행의 총합 출력
+    if not init:
+        max_row = move(gi, gj, e)
+        cnt += (max_row-2)
+
+print(cnt)
