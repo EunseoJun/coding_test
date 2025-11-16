@@ -1,0 +1,174 @@
+# 민트초코 우유 / 20251115: 6시간 20분 소요
+#
+# 교실에는 N*N 크기의 배열(1,1~N,N), 초기 신봉 음식은 F(T, C, M), 초기 신앙심은 B, T일 동안 진행
+# 1. 아침: 모든 학생은 신앙심을 1씩 얻음
+# 2. 점심: 학생들은 인접한 학생들과 신봉음식이 완전 같은 경우에만 그룹.(상하좌우)
+# 2-1. 그룹 내 대표자 선정. 그룹 내 학생 좌표 (r,c)일 때, 대표자는 신앙심>r가작은사람>c가작은사람
+# 2-2. 대표자 제외한 그룹원들은 각자 신앙심을 1씩 대표자에게 넘김
+#
+# 3. 저녁: 모든 대표자들이 신앙을 전파, 전파 순서는 단일(T,C,M)>이중(CM,TM,TC)>삼중(MCT)
+# 3-1: 같은 그룹 내에서는 대표자 신앙심 높은순>대표자 r번호 작은순>대표자 c번호 작은순
+# 3-2: 대표자는 신앙심 1만 남기고, 전파 시도. 격자 밖or간절함 0이면 전파종료. 전파대상이 신봉음식 같으면 넘어감
+# 3-3: 신봉음식 다르면 전파 진행
+#     3-3-1: 전파자 신앙심x>전파대상 신앙심y: 강한전파: 동일음식 신봉, 전파자 신앙 y+1만큼 깎임+대상자 신앙+1
+#     3-3-2: x<=y: 약한전파: 전파자의 모든 음식에 관심, 전파자 신앙 0, 대상자 신앙+x
+# 3-4: 전파당한 날은 방어 상태되어서 전파는 하지 않음. 당하는 것은 가능
+#
+# 4. 끝난 후 민트초코우유(TCM), 민트초코(TC), 민트우유(TM), 초코우유(CM), 우유(M), 초코(C), 민트(M) 순서대로 출력
+#
+from collections import deque
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+N, T = map(int, input().split())
+food = [list(map(str, input().strip())) for _ in range(N)]
+blv = [list(map(int, input().split())) for _ in range(N)]
+
+# 이후에도 list로 비교하려고 list로 바꿔주기
+for i in range(N):
+    for j in range(N):
+        if food[i][j] == 'T':
+            food[i][j] = ['A'] # sort 쓰려고 C를 N으로 바꿔놓음
+        else:
+            food[i][j] = [food[i][j]]
+
+
+def lunch():
+    # 2. 점심: 학생들은 인접한 학생들과 신봉음식이 완전 같은 경우에만 그룹.(상하좌우)
+    # 2-1. 그룹 내 대표자 선정. 그룹 내 학생 좌표 (r,c)일 때, 대표자는 신앙심>r가작은사람>c가작은사람
+    global food
+    represent = []
+    q = deque()
+    v = [[0]*N for _ in range(N)]
+    for i in range(N):
+        for j in range(N):
+            if v[i][j] == 0:
+                f = food[i][j]
+                v[i][j] = 1
+                max_blv = blv[i][j]
+                rep = [(i, j)]
+                q.append((i, j))
+                while q:
+                    ri, rj = q.popleft()
+                    for dr in range(4):
+                        ci, cj = ri+dx[dr], rj+dy[dr]
+                        if 0<=ci<N and 0<=cj<N and v[ci][cj]==0 and food[ci][cj]==f:
+                            if blv[ci][cj] > max_blv:
+                                rep = [(ci, cj)]
+                                max_blv = blv[ci][cj]
+                            elif blv[ci][cj] == max_blv:
+                                rep.append((ci, cj))
+                            v[ci][cj] = 1
+                            q.append((ci, cj))
+                rep.sort(key=lambda x:(x[0], x[1]))
+                represent.append(rep[0])
+    # print(represent)
+    # 2-2. 대표자 제외한 그룹원들은 각자 신앙심을 1씩 대표자에게 넘김
+    # representation = [(1, 1), (0, 2), (1, 3), (2, 0)]
+    v = [[0]*N for _ in range(N)]
+    return_rep = []
+    for rei, rej in represent:
+        v[rei][rej] = 1
+        f = food[rei][rej]
+        q.append((rei, rej))
+        while q:
+            ri, rj = q.popleft()
+            for dr in range(4):
+                ci, cj = ri+dx[dr], rj+dy[dr]
+                if 0<=ci<N and 0<=cj<N and v[ci][cj]==0 and food[ci][cj]==f:
+                    v[ci][cj] = 1
+                    blv[ci][cj] -= 1
+                    blv[rei][rej] += 1
+                    q.append((ci, cj))
+        # [[신앙심, (x,y), 신봉음식], ..., []]
+        return_rep.append([blv[rei][rej], (rei, rej), f])
+
+    return return_rep
+
+def dinner(represent_list):
+    # 3. 저녁: 모든 대표자들이 신앙을 전파, 전파 순서는 단일(T,C,M)>이중(CM,TM,TC)>삼중(MCT)
+    # represent_list = [[28, (1, 1), ['N']],[28, (1, 1), ['M']], [28, (1, 1), ['T']]]
+    # 3-1: 같은 그룹 내에서는 대표자 신앙심 높은순>대표자 r번호 작은순>대표자 c번호 작은순
+    # represent_list.sort(key=lambda x:(x[0], x[1][0], x[1][1], x[2]))
+    # print(represent_list)
+
+    rep_sort = []
+    for length in range(1, 4):
+        temp = []
+        for r in represent_list:
+            if len(r[2]) == length:
+                temp.append(r)
+        temp.sort(key=lambda x:(-x[0], x[1][0], x[1][1]))
+        # print('tem',temp)
+        rep_sort.extend(temp)
+
+    # print(rep_sort)
+    # 3-2: 대표자는 신앙심 1만 남기고, 전파 시도. 격자 밖or간절함 0이면 전파종료. 전파대상이 신봉음식 같으면 넘어감
+    v = [[0]*N for _ in range(N)]
+    for rp in rep_sort:
+        # [28, (1, 1), ['T']]
+        rpb = rp[0]-1
+        rpi, rpj = rp[1]
+        if v[rpi][rpj] == 0:
+            blv[rpi][rpj] = 1
+            f = rp[2]
+            # 전파 방향: rpb를 4로 나눈 나머지 0,1,2,3 => 위, 아래, 왼, 오
+            dr = (rpb+1)%4
+            q = deque()
+            q.append((rpi, rpj, rpb))
+            while q:
+                ci, cj, cb = q.popleft()
+                ci, cj = ci+dx[dr], cj+dy[dr]
+                # 전파 조건
+                if 0<=ci<N and 0<=cj<N and cb>0:
+                   # 신봉음식 같을 때(넘어감)
+                    if food[ci][cj] == f:
+                        q.append((ci, cj, cb))
+                        continue
+                    # 3-3: 신봉음식 다르면 전파 진행
+                    elif food[ci][cj] != f:
+                        # 3-4: 전파당한 날은 방어 상태되어서 전파는 하지 않음. 당하는 것은 가능
+                        v[ci][cj] = 1
+                        #강한 전파: 3-3-1: 전파자 신앙심x>전파대상 신앙심y: 강한전파: 동일음식 신봉, 전파자 신앙 y+1만큼 깎임+대상자 신앙+1
+                        if cb>blv[ci][cj]:
+                            food[ci][cj] = f
+                            cb = cb - (blv[ci][cj]+1)
+                            blv[ci][cj] += 1
+                            q.append((ci, cj, cb))
+                        #     3-3-2: x<=y: 약한전파: 전파자의 모든 음식에 관심, cb 0, 대상자 신앙+x
+                        elif cb<=blv[ci][cj]:
+                            # print('food', food[ci][cj])
+                            temp = food[ci][cj][:]
+                            temp.extend(f)
+                            temp = list(set(temp))
+                            temp.sort()
+                            food[ci][cj] = temp
+                            blv[ci][cj] += cb
+                            cb = 0
+                            q.append((ci, cj, cb))
+                elif v[rpi][rpj] == 1:
+                    blv[rpi][rpj] = rpb+1
+
+    # print(blv)
+    # print(food)
+
+for t in range(T):
+    # 1. 아침: 모든 학생은 신앙심을 1씩 얻음
+    for i in range(N):
+        for j in range(N):
+            blv[i][j] += 1
+    a = lunch() #[[신앙심, (x,y), 신봉음식], ..., []]
+    dinner(a)
+    # 4. 끝난 후 민트초코우유(TCM), 민트초코(TC), 민트우유(TM), 초코우유(CM), 우유(M), 초코(C), 민트(M) 순서대로 출력
+    # print(food)
+    # print(blv)
+    fla = [['A', 'C', 'M'], ['A', 'C'], ['A', 'M'], ['C', 'M'], ['M'], ['C'], ['A']]
+    for f in fla:
+        cnt = 0
+        for i in range(N):
+            for j in range(N):
+                if food[i][j] == f:
+                    b = blv[i][j]
+                    cnt+=b
+        print(cnt, end = ' ')
+    print()
