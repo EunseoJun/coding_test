@@ -1,0 +1,164 @@
+# 20251117: 2시간 56분
+# 회고
+# 주요 로직들 다시 외우기!
+
+# # 고대 문명 유적 탐사
+#
+# 5x5 격자, 유물조각은 7가지 종류(1~7로 표현)
+# N턴 반복 -> 만약 어떤 방법으로도 유물 획득 불가시 턴 종료
+#
+# 1. 탐사 진행
+# 1-1. 3x3 격자 선택하여 회전시킴, 시계방향 90, 180, 270도로 회전
+# 1-2. 유물 1차 획득 가치를 최대화, 회전 각도 작은 순, 회전중심좌표 열이 작은순
+# 2. 유물 획득
+# 2-1. 상하좌우로 인접한 같은 유물 조각들이 3개 이상이면 유물되고 사라짐. 유물 가치->모인 조각 개수
+# 2-2. 사라진 유물 자리에 벽면의 적힌 순서대로 조각 생성. 열번호 작은순, 행번호 큰 순으로 조각 생김
+# 3. 유물 조각 생긴 후에도 유물 연결 가능, 유물이 더 안 생길 때까지 반복
+# 4. 각 턴마다 획득한 유물의 가치의 합 출력
+from collections import deque
+new = deque()
+K, M = map(int, input().split()) #탐사 반복횟수, 유물 조각의 개수
+arr = [list(map(int, input().split())) for _ in range(5)]
+new_temp = list(map(int, input().split()))
+# print(new_temp)
+# print(new_temp[0])
+for m in range(M):
+    new.append(new_temp[m])
+# print(new)
+M = [(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)]
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+def rotate(m, a, toggle):
+    time_a = int(a/90)
+    temp_arr = [row[:] for row in arr]
+    if toggle==False:
+        for it in range(time_a):
+            x, y = m
+            temp = [[0]*5 for _ in range(5)]
+            for i in range(3):
+                for j in range(3):
+                    temp[i][j] = temp_arr[x+i][y+j]
+            for i in range(3):
+                for j in range(3):
+                    temp_arr[x+i][y+j] = temp[3-j-1][i]
+        temp_arr = [row[:] for row in temp_arr]
+        return temp_arr
+    if toggle==True:
+        for it in range(time_a):
+            x, y = m
+            temp = [[0]*5 for _ in range(5)]
+            for i in range(3):
+                for j in range(3):
+                    temp[i][j] = arr[x+i][y+j]
+            for i in range(3):
+                for j in range(3):
+                    arr[x+i][y+j] = temp[3-j-1][i]
+        return arr
+
+def get_herit(harr, toggle):
+    cnt = 0
+    if toggle == False:
+        temp_arr = [row[:] for row in harr]
+        q = deque()
+        v = [[0]*5 for _ in range(5)]
+        for i in range(5):
+            for j in range(5):
+                if v[i][j] == 0:
+                    group = []
+                    group.append((i,j))
+                    temp_cnt = 1
+                    num = temp_arr[i][j]
+                    q.append((i, j))
+                    v[i][j] = 1
+                    while q:
+                        ci, cj = q.popleft()
+                        for dr in range(4):
+                            ni, nj = ci+dx[dr], cj+dy[dr]
+                            if 0<=ni<5 and 0<=nj<5 and v[ni][nj]==0 and temp_arr[ni][nj]==num:
+                                group.append((ni, nj))
+                                q.append((ni, nj))
+                                v[ni][nj] = 1
+                                temp_cnt += 1
+                    if temp_cnt>=3:
+                        # 그룹에 있는 애들 0으로 만들기.
+                        for gi, gj in group:
+                            temp_arr[gi][gj] = 0
+                        cnt += temp_cnt
+    if toggle == True:
+        global arr
+        q = deque()
+        v = [[0] * 5 for _ in range(5)]
+        cnt = 0
+        for i in range(5):
+            for j in range(5):
+                if v[i][j] == 0:
+                    group = []
+                    group.append((i, j))
+                    temp_cnt = 1
+                    num = arr[i][j]
+                    q.append((i, j))
+                    v[i][j] = 1
+                    while q:
+                        ci, cj = q.popleft()
+                        for dr in range(4):
+                            ni, nj = ci + dx[dr], cj + dy[dr]
+                            if 0 <= ni < 5 and 0 <= nj < 5 and v[ni][nj] == 0 and arr[ni][nj] == num:
+                                group.append((ni, nj))
+                                q.append((ni, nj))
+                                v[ni][nj] = 1
+                                temp_cnt += 1
+                    if temp_cnt >= 3:
+                        # 그룹에 있는 애들 0으로 만들기.
+                        for gi, gj in group:
+                            arr[gi][gj] = 0
+                        cnt += temp_cnt
+
+    return cnt
+
+
+
+# a = get_herit(rotate((0,1), 180, False), False)
+# print(a)
+# print(arr)
+
+# rotate((1,1), 90, True)
+# print(arr)
+
+
+
+for t in range(K):
+    answer = 0
+    check = []
+    # 1. 격자 어떻게 돌려도 획득할 수 있는 유물이 0=> 종료
+    b = 0
+    for m in M:
+        for a in [90, 180, 270]:
+            b = get_herit(rotate(m, a, False), False) # rotate((0,1), 180, True) => [[1, 2...], ...] arr 리턴
+            check.append((m, a, b)) # ((1,1), 90, 7)
+    # 1-2. 유물 1차 획득 가치를 최대화, 회전 각도 작은 순, 회전중심좌표 열이 작은순
+    check.sort(key=lambda x:(-x[2], x[1], x[0][1]))
+    # print(check)
+    # [((1, 1), 90, 7),...]
+    if check[0][2] == 0:
+        break
+#     # 2. 유물 획득 가장 많이되는 각도 찾아서 회전
+    best = check[0] # [((1, 1), 90, 7),...]
+    answer += get_herit(rotate(best[0], best[1], True), True)
+    #     # 3. 유물 획득 0될 때까지 돌리기
+    # 2-2. 사라진 유물 자리에 벽면의 적힌 순서대로 조각 생성. 열번호 작은순, 행번호 큰 순으로 조각 생김
+    while True:
+        for j in range(5):
+            for i in range(4, -1, -1):
+                if arr[i][j] == 0:
+                    arr[i][j] = new.popleft()
+        # print(arr)
+        get = get_herit(arr, True)
+        # print(arr)
+        if get == 0:
+            break
+        answer += get
+    if answer == 0:
+        continue
+    else:
+        print(answer, end=" ")
