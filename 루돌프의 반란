@@ -1,0 +1,166 @@
+# # 루돌프의 반란
+# 20251118
+# 소요시간: 3시간
+# 회고: 함수 조건 짤 때 중간에 앞 결과가 반영되어야 하는 경우를 잘 구분하기
+
+#
+# P명의 산타가 선물 배달, M턴에 걸쳐 진행
+# 루돌프 움직임 => 산타가 1~P까지 움직임, 기절, 격자밖의 산타들은 움직일 수 없음
+# 거리계산은 (r1-r2)**2 + (c1-c2)**2
+#
+# 1. 루돌프의 움직임
+# 1-1. 루돌프는 가장 가까운 산타를 향해 1칸 돌진. (게임에서 탈락하지 않은 산타 중)=> 산타 살아있는지, 기절했는지 list
+#     => 가까운 산타가 2명 이상이면 r큰>c큰 순서로 돌진
+# 1-2. 루돌프는 상하좌우 대각선(총 8방향)으로 돌진.
+# 2. 산타의 움직임
+# 2-1. 산타는 1~P까지 순서대로 움직임(기절한 산타는 움직일 수 없음)
+# 2-2. 산타는 루돌프에게 가까워지는 방향으로 1칸(상우하좌로 움직일 수 있음, 우선순위도 상우하좌)
+# 2-3. 다른 산타가 있거나 겜판 밖으로는 움직일 수 X.
+# 2-4. 움직일 수 있는 칸이 있더라도 루돌프로부터 가까워질 수 없으면 움직이지 않음.
+# 3. 충돌, 산타와 루돌프가 만나면 충돌 발생
+# 3-1. 루돌프가 움직여서 충돌: 해당 산타는 C만큼의 점수를 얻음, 산타는 루돌프 이동 방향으로 C칸 밀림
+# 3-2. 산타가 움직여서 충돌: 해당 산타는 D만큼의 점수를 얻음, 산타는 자신의 이동방향 반대로 D칸 밀림
+# 3-3. 산타가 격자 밖으로 나갔음 => if 탈락 is None:
+# 4. 상호작용
+# 4-1. 충돌 후 착지한 칸에 다른 산타가 있다면 상호작용 발생
+# 4-2. 착지한 칸에 있던 산타는 해당 방향으로 1칸 밀림, 옆에 산타 또 있으면 연쇄적으로 밀림
+# 5. 기절
+# 5-1. 산타 충돌 후 기절함. 현재가 K턴이면 K+1턴까지 기절. 돌진대상으로는 선택할 수 있음.
+# 6. 턴 도중 P명의 산타 모두 탈락 시 게임 종료됨.
+# 6-1. 매 턴 이후 아직 탈락하지 않은 산타들은 1점을 추가 부여
+# 7. 각 산타의 최종 점수 출력
+
+from collections import deque
+
+N, M, P, C, D = map(int, input().split()) #겜판 크기, 겜턴 수, 산타 수, 루돌프힘, 산타힘, 산타번호
+tri, trj = map(int, input().split())
+ri, rj = tri-1, trj-1
+# 산타 살았는지
+live = [0]*(P+1)
+live[0] = 1 # 0번 산타는 없음...
+#산타 이번 턴에 기절 했는지
+alert = [0]*(P+1)
+alert[0] = 1
+# 산타 위치 저장 행렬
+santa = [[0] for _ in range(P+1)]
+score = [0]*(P+1)
+arr = [[0]*N for _ in range(N)]
+arr[ri][rj] = -1
+
+for _ in range(P):
+    idx, si, sj = map(int, input().split())
+    santa[idx] = [si-1, sj-1]
+    arr[si-1][sj-1] = idx
+
+def move_ru():
+    # 1-1. 루돌프는 가장 가까운 산타를 향해 1칸 돌진. (게임에서 탈락하지 않은 산타 중)=> 산타 살아있는지, 기절했는지 list
+    # 1-2. 루돌프는 상하좌우 대각선(총 8방향)으로 돌진.
+    dist_list = []
+    for idx in range(1, P+1):
+        if live[idx] == 0:
+            # 거리계산은 (r1-r2)**2 + (c1-c2)**2
+            si, sj = santa[idx][0], santa[idx][1]
+            dist = (ri-si)**2 + (rj-sj)**2
+            dist_list.append((idx, dist, (santa[idx][0], santa[idx][1])))
+    #     => 가까운 산타가 2명 이상이면 r큰>c큰 순서로 돌진
+    dist_list.sort(key=lambda x: (x[1], -x[2][0], -x[2][1]))
+    target_santa = dist_list[0]
+
+    min_dist = float('inf')
+    direction = (0, 0)
+    tsi, tsj = target_santa[2][0], target_santa[2][1]
+    for dri, drj in [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]:
+        mi, mj = ri+dri, rj+drj
+        dist = (tsi-mi)**2+(tsj-mj)**2
+        if dist<min_dist:
+            direction = (dri, drj)
+            min_dist = dist
+
+    nri, nrj = ri+direction[0], rj+direction[1]
+    return nri, nrj, (direction[0], direction[1])
+
+def move_santa(sidx, s, dr, P):
+    # 부딪혔으니까 기절!
+    # alert[sidx] = t+2
+    # 4. 상호작용
+    # 4-1. 충돌 후 착지한 칸에 다른 산타가 있다면 상호작용 발생
+    # 4-2. 착지한 칸에 있던 산타는 해당 방향으로 1칸 밀림, 옆에 산타 또 있으면 연쇄적으로 밀림
+    si, sj = s[0], s[1]
+    di, dj = -1*dr[0], -1*dr[1]
+    ni, nj = si+(di*P), sj+(dj*P)
+    if 0<=ni<N and 0<=nj<N:
+        if arr[ni][nj] > 0:
+            move_santa(arr[ni][nj], (ni,nj), dr, 1)
+            arr[ni][nj] = sidx
+            santa[sidx] = [ni, nj]
+        elif arr[ni][nj] == 0:
+            arr[ni][nj] = sidx
+            santa[sidx] = [ni, nj]
+    else:
+        live[sidx] = 1
+
+def move_ru_side():
+    for sidx in range(1, P+1):
+        move_list = []
+        if live[sidx]==0 and alert[sidx]<=t:
+            dist_list = []
+            si, sj = santa[sidx][0], santa[sidx][1]
+            now_dist = (ri-si)**2 + (rj-sj)**2
+            # 1. 루돌프와의 거리 순 정렬
+            for di, dj in [(-1,0),(0,1),(1,0),(0,-1)]: # 상우하좌 우선순위
+                if 0<=si+di<N and 0<=sj+dj<N:
+                    dist = (ri-(si+di))**2 + (rj-(sj+dj))**2
+                    if dist<now_dist:
+                        dist_list.append([dist, [di, dj]])
+            if dist_list == []: # 가까워질 방법이 없을 경우
+                continue
+            else:
+                dist_list.sort(key=lambda x:x[0]) # cccc 값 이상하면 상우하좌 우선순위 지켜지는지 확인
+            # 2-2. 산타는 루돌프에게 가까워지는 방향으로 1칸(상우하좌로 움직일 수 있음, 우선순위도 상우하좌)
+            # 2-3. 다른 산타가 있거나 겜판 밖으로는 움직일 수 X.
+            for d in dist_list:
+                di, dj = d[1][0], d[1][1]
+                mi, mj = si+di, sj+dj
+                if arr[mi][mj]>0:
+                    pass
+                else:
+                    move_list.append([sidx, (mi, mj), (di, dj)])
+                    break
+            if move_list == []: continue
+            else:
+                move = move_list[0]
+                tmi, tmj = move[1][0], move[1][1]
+                if (ri,rj) == (tmi, tmj):
+                    alert[sidx] = t + 2
+                    arr[si][sj] = 0
+                    move_santa(sidx, (tmi, tmj), (move[2][0], move[2][1]), D)
+                    score[sidx] += D
+                else:
+                    arr[si][sj] = 0
+                    santa[sidx] = [tmi, tmj]
+                    arr[tmi][tmj] = sidx
+
+
+for t in range(1, M+1):
+    if not (0 in live):    break # 산타 다 죽었으면 종료
+    # 1. 돌진할 산타 찾고 돌진하기 => move_ru # => output: new_ri, new_rj 루돌프 이동할 새로운 좌표
+    nri, nrj, dr = move_ru()
+    # 2. 루돌프 옮기고 산타 있었으면 이동시켜주기 => move_santa(santa_idx, (si,sj), (-1, 0)이동방향, 점수(이동거리))
+    if arr[nri][nrj] > 0:
+        di, dj = dr[0], dr[1]
+        alert[arr[nri][nrj]] = t + 2
+        move_santa(arr[nri][nrj], (nri,nrj), (-1*di, -1*dj), C)
+        score[arr[nri][nrj]] += C # 부딪혔으니까 점수 추가
+    arr[ri][rj] = 0
+    ri, rj = nri, nrj
+    arr[ri][rj] = -1
+    # 3. 산타 루돌프쪽으로 돌진 => move_ru_side
+    move_ru_side()
+    
+    for idx in range(1, P+1):
+        if live[idx] == 0:
+            score[idx] += 1
+    # print(arr)
+    # print(score)
+    # print(t,'--------')
+print(*score[1:])
