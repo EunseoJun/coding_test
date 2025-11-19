@@ -1,0 +1,124 @@
+# 20251119
+# 2시간 37분
+# 회고
+# 틀린 부분이 있으면 디버깅부터 찍지 말고,
+# 문제 다시 읽으면서 누락한 부분 있나 살펴보기
+# 그 후에 코드 보면서 누락한 부분있나 다시 보기
+
+# # 왕실의 기사 대결
+#
+# 각 칸은 빈칸, 함정, 벽으로 구성
+# 자신의 마력으로 상대를 밀쳐낼 수 있음
+# r,c를 좌상단으로 하여 h*w 크기의 직사각형 형태
+#
+# 1. 기사 이동
+# 1-1. 기사는 상하좌우 중 하나로 이동
+# 1-2. 옆에 기사가 있으면 연쇄적으로 밀림. but 벽 있으면 움직일 수 없음
+# 1-3. 체스판에서 사라진 기사한테 명령 내리면 반응 없음
+# 2. 대결 대미지
+# 2-1. 밀쳐진 기사는 피해를 입음. 밀려난 곳에서 w*h 직사각형 내의 함정의 수만큼 피해->그만큼 체력 깎음
+# 2-2. 체력 이상의 대미지를 입으면 체스판에서 사라짐
+# 2-3. 명령 받은 기사는 피해 안입음
+# 2-4. 기사들은 모두 이동 후에 피해!!! -> 이동 시킨 후 피해 한 번에 갱신
+from collections import deque
+L, N, Q = map(int, input().split()) # 판 크기, 기사 정보, Q개의 명령
+arr = [list(map(int, input().split())) for _ in range(L)]
+knite = [[0] for _ in range(N+1)] # r, c, h, w, k=체력
+alive = [0]*(N+1)
+alive[0] = 1
+org_power = [0]*(N+1)
+
+
+for idx in range(1, N+1):
+    a = list(map(int, input().split()))
+    a[0] -= 1
+    a[1] -= 1
+    knite[idx] = a
+command = [list(map(int, input().split())) for _ in range(Q)] # (i,d) i번 기사에게 d로 한 칸 이동해라
+# print(command)
+for p in range(1, N+1):
+    org_power[p] = knite[p][4]
+knite_body = [[] for _ in range(N+1)]
+for idx in range(1, N+1):
+    r, c, h, w, k = knite[idx]
+    for i in range(h):
+        for j in range(w):
+            knite_body[idx].append((r+i, c+j))
+# print(knite_body)
+# print(org_power)
+dx = [-1, 0, 1, 0] # d의 상우하좌
+dy = [0, 1, 0, -1]
+
+def move(idx, d, com):
+    v = [0]*(N+1) # 밀다가 다른 기사 만나면 이미 만난적 있는지 확인하고 q에 추가하기
+    q = deque()
+    q.append((idx, d, com))
+    v[idx] = 1
+    moved =[0]*(N+1) # 밀쳐졌는지 학인하는 행렬
+    mbody = [[] for _ in range(N+1)] # 이동할 기사들 몸
+    while q:
+        # 1. knite_body동안 한 칸씩 밀면서 다른 기사들 몸 안에 없는지 확인+이동된 몸 좌표 저장
+        kidx, dr, comm = q.popleft()
+        temp_body = []
+        if comm == 1:
+            moved[kidx] = 1
+        for ci,cj in knite_body[kidx]:
+            ni, nj = ci+dx[dr], cj+dy[dr]
+            # 격자 밖=>못밀음, 종료
+            if 0<=ni<L and 0<=nj<L and arr[ni][nj] != 2:
+                for ak in range(1, N+1):
+                    if ak == kidx:  continue
+                    elif alive[ak] == 1: continue
+                    else:
+                        if (ni, nj) in knite_body[ak]:
+                        # 다른 몸 => q에 추가 및 v에 표시, moved에 표시
+                            if v[ak] == 0:
+                                q.append((ak, dr, 1))
+                                v[ak] = 1
+                        if (ni, nj) in temp_body:   continue
+                        temp_body.append((ni, nj))
+
+
+
+            else: # 1-3. 밀다가 벽 나오면 종료
+                return  [0]*(N+1)
+        # print(temp_body)
+        mbody[kidx] = temp_body
+
+    # print('mb', mbody)
+    for idx in range(1, N+1):
+        if mbody[idx] == []: continue
+        else:
+            knite_body[idx] = mbody[idx]
+            knite[idx][0] = mbody[idx][0][0]
+            knite[idx][1] = mbody[idx][0][1]
+    # knite 값 갱신
+    return moved
+
+
+    # 벽 없어서 q 끝나면 mbody 돌면서 좌표 갱신
+    # return moved
+
+for idx, d in command:
+    #1. 옮기기
+    moved = move(idx, d, 0) # 기사 idx, 방향, 명령'받은' 기사임을 나타냄
+    # print('mmm', md)
+    # print(knite_body)
+    dem = [0] * (N + 1)
+    for kidx in range(1, N+1):
+        if moved[kidx] == 1:
+            for kb in knite_body[kidx]:
+                i, j = kb[0], kb[1]
+                if arr[i][j] == 1:
+                    dem[kidx] -= 1
+                    knite[kidx][4] -= 1
+
+    for kidx in range(1, N + 1):
+        if knite[kidx][4] <= 0:
+            alive[kidx] = 1
+            knite_body[kidx] = []
+cnt = 0
+for kidx in range(1, N+1):
+    if alive[kidx] == 0:
+        cnt += knite[kidx][4] - org_power[kidx]
+print(abs(cnt))
