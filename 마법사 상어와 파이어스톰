@@ -1,0 +1,92 @@
+# 마법사 상어와 파이어스톰
+# 20251119
+# 1시간 14분
+# 회고
+# 이번 melt함수처럼 '동시에' 변화가 일어나는데 행렬을 변경 시켜 버리고 다음 변화를 확인해서는 X
+# 동시에 일어나는 일인 경우, 기존 행렬 변화 없이 상태 변화를 확인하고 한 번에 갱신하기
+
+# 2**N*2**N인 격자에서 시작
+# 2**L*2**L인 격자로 나눔
+# 나눠진 모든 격자를 시계 방향으로 90도 회전시킴
+# 그 후에 얼음이 있는 칸과 3칸 이상 인접해있지 않으면 얼음이 1 녹음(상하좌우)
+
+from collections import deque
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+
+N, Q = map(int, input().split())
+arr = []
+for _ in range(2**N):
+    temp = list(map(int, input().split()))
+    arr.append(temp)
+L = list(map(int, input().split()))
+
+def turn(l):
+    if l == 0:  return
+    sep = 2 ** l
+    temp = [[0]*2**N for _ in range(2**N)]
+    for x in range(int(2 ** N / sep)):
+        si = x*(2**l)
+        for y in range(int(2 ** N / sep)):
+            sj = y*(2**l)
+            # temp에 담기
+            for i in range(sep):
+                for j in range(sep):
+                    temp[i][j] = arr[si+i][sj+j]
+            # arr에 옮겨 담기
+            for i in range(sep):
+                for j in range(sep):
+                    arr[si+i][sj+j] = temp[sep-j-1][i]
+
+def melt():
+    melt_cand = []
+    for i in range(2**N):
+        for j in range(2**N):
+            cnt = 0
+            ci, cj = i, j
+            for dr in range(4):
+                ni, nj = ci+dx[dr], cj+dy[dr]
+                if 0<=ni<2**N and 0<=nj<2**N and arr[ni][nj]>0:
+                    cnt += 1
+            if cnt < 3:
+                if arr[ci][cj]>0:
+                    melt_cand.append((ci,cj))
+    for x, y in melt_cand:
+        arr[x][y] -= 1
+
+def big_piece():
+    pcnt = []
+    v = [[0]*2**N for _ in range(2**N)]
+    q = deque()
+    for i in range(2**N):
+        for j in range(2**N):
+            cnt = 0
+            if v[i][j] == 0 and arr[i][j]>0:
+                q.append((i, j))
+                v[i][j] = 1
+                cnt += 1
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj  = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<2**N and 0<=nj<2**N and v[ni][nj]==0 and arr[ni][nj]>0:
+                            v[ni][nj] = 1
+                            q.append((ni, nj))
+                            cnt += 1
+            pcnt.append(cnt)
+    return max(pcnt)
+
+for l in L:
+    turn(l) # arr 돌리기
+    melt() # 얼음 녹이기
+
+cnt = 0
+for i in range(2 ** N):
+    for j in range(2 ** N):
+        cnt += arr[i][j]
+
+# print(arr)
+print(cnt)
+piece = big_piece()
+print(piece)
+
