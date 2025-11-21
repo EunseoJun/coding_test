@@ -1,0 +1,53 @@
+# 16926
+# 배열 돌리기
+
+# 행-열 순서로 순회하면서 v가 0이면 시작
+# 옮긴 좌표를 방문처리=> 만약 좌표가 밖으로 나가면 방향을 바꿔서 다시 넣기
+# 가운데 안돌아가는 좌표는 4방향 다 돌려보고 안되면 다시 넣어주기
+
+# 회고
+# 소요시간: 46분
+# python으로 내면 시간초과, pypy는 통과
+# 최적화 생각해보기
+
+N, M, R = map(int, input().split())
+arr = [list(map(int, input().split())) for _ in range(N)]
+
+dx = [1, 0, -1, 0]
+dy = [0, 1, 0, -1]
+from collections import deque
+
+for t in range(R):
+    v = [[0]*M for _ in range(N)]
+    for i in range(N):
+        for j in range(M):
+            d = 0
+            if v[i][j] == 0:
+                q = deque()
+                coor = deque()
+                val = deque()
+                coor.append((i,j))
+                val.append(arr[i][j])
+                q.append((i, j, d))
+                v[i][j] = 1
+                while q:
+                    ci, cj, dr = q.popleft()
+                    if dr>3:
+                        break
+                    ni, nj = ci+dx[dr], cj+dy[dr]
+                    if 0<=ni<N and 0<=nj<M and v[ni][nj]==0:
+                        v[ni][nj] = 1
+                        q.append((ni, nj, dr))
+                        coor.append((ni, nj))
+                        val.append(arr[ni][nj])
+                    else:
+                        q.append((ci, cj, dr+1))
+                temp = val.pop()
+                val.insert(0, temp)
+                for idx in range(len(coor)):
+                    x, y = coor[idx]
+                    arr[x][y] = val[idx]
+for i in range(N):
+    for j in range(M):
+        print(arr[i][j], end=' ')
+    print()
