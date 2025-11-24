@@ -1,0 +1,147 @@
+# 20251124
+# 소요시간: 3시간 9분
+# 회고
+# 이제 로직 짜는거 자체는 익숙한거 같은데
+# 1. 전체적 흐름을 잘못짜는 경우
+# 2. 문제에서의 요구사항을 잘못읽는 경우가
+# 아직도 있다
+# 오늘도 구현 자체는 1시간 40분에 끝냈는데 디테일한 부분들을 놓쳐서 시간을 너무 많이 썼다
+# 40분 정도는 구상에 쓴다고 생각하는게 오히려 훨씬 빨리 끝날거 같다
+# 구현할 때
+# 1. 40분 정도는 구상에 쓴다고 생각하기
+# 2. 함수 하나 다 짜면 1.오타점검, 2. 문제 요구사항 점검에 최소 5분은 쓴다고 생각하기
+# 3. 그래도 이상하면 arr를 동시 갱신했거나, 순서 자체가 틀리진 않았는지 다시 점검
+
+
+# # 코드트리 빵
+#
+# 빵을 구하고자하는 m명의 사람
+# m번째 사람은 m분에 베이스캠프에서 편의점으로 출발함
+# n*n 크기의 격자 위에서 진행
+#
+# 1분 동안 3가지의 행동을 함
+# 1. 격자에 있는 사람들 모두가 본인이 가고싶은 편의점 방향으로 1칸
+# 1-1. 최단거리로 움직임=> 우선 순위 상좌우하: 동시에 같은 칸에 있을 수 있는가? => 상관 X
+# 2. 편의점에 도착하면 멈춤! 다른 사람들은 이제 이 편의점 못 지나감
+#     =>격자에 있는 사람들이 모두 이동한 후 해당 칸은 통행 금지!!! 업데이트 한 번에 하기
+# 3. 현재 시간이 t분일 때 t<=m을 만족한다면, 자신이 가고싶은 편의점과 가장 가까운 베이스캠프에 들어감
+# 3-1. 최단거리, 여러개면 r이 작은>c가 작은, 베이스캠프 이동에는 시간소요X
+#     => 사람이 들어가면 베이스캠프 못지나감
+
+from collections import deque
+dx = [-1, 0, 0, 1] # 상좌우하 우선순위
+dy = [0, -1, 1, 0]
+
+N, M = map(int, input().split())
+arr = [list(map(int, input().split())) for _ in range(N)] #0은 빈공간, 1은 베이스캠프
+conv = []
+for _ in range(M):
+    i, j = map(int, input().split())
+    conv.append([i-1, j-1])
+# conv = [list(map(int, input().split())) for _ in range(M)] # 편의점 위치
+# conv.insert(0, [-1,-1])
+people = [[-1, -1] for _ in range(M)]
+basecamp = []
+for i in range(N):
+    for j in range(N):
+        if arr[i][j] == 1:
+            basecamp.append([i, j])
+
+road = [[0]*N for _ in range(N)] # 통행금지 표시할 array
+arrived = [0]*M # 도착 확인 arr
+# print(arrived)
+# print('bs', basecamp)
+# print('cv', conv)
+def get_base():
+    candidate = []
+    v = [[0]*N for _ in range(N)]
+    cvi, cvj = conv[t][0], conv[t][1]
+    q = deque()
+    q.append((cvi,cvj, 0)) # 초기시작 및 거리
+    v[cvi][cvj] = 1
+    while q:
+        ci, cj, dist = q.popleft() # cccc 우선순위 따라 수행하니까 들어오면 그냥 멈춰버리게 했는데 이상하면 확인
+        # if [ci, cj] in basecamp:
+        #     candidate.append([dist, [ci, cj]])
+        #     break
+        for dr in range(4):
+            ni, nj = ci+dx[dr], cj+dy[dr]
+            if 0<=ni<N and 0<=nj<N and road[ni][nj]==0:
+                if v[ni][nj]==0:
+                    if [ni, nj] in basecamp and road[ni][nj]==0:
+                        candidate.append([dist, [ni, nj]])
+                        v[ni][nj] = 1
+                    else:
+                        q.append((ni, nj, dist+1))
+                        v[ni][nj] = 1
+    # tbi, tbj = candidate[0][1][0], candidate[0][1][1]
+    candidate.sort(key=lambda x:(x[0], x[1][0], x[1][1]))
+    return candidate[0][1] #[ci, cj]
+
+def get_move(tidx):
+    # get_move(t) => return [[ci, cj]..] 통행 금지된 편의점 좌표
+    # get_move => 사람들 이동시키기
+    road_coor = []
+    if tidx<M:
+        pass
+    else:
+        tidx = M
+    for idx in range(tidx):
+
+        if arrived[idx] == 0:
+            dr_candidate = []
+            v = [[0]*N for _ in range(N)]
+            pi, pj = people[idx]
+            cvi, cvj = conv[idx]
+            q = deque()
+            v[pi][pj] = 1
+            q.append((pi, pj, 0, -1)) # 좌표, 거리, 첫 시작 dr
+            # print(cvi, cvj)
+            while q:
+                ci, cj, dist, direct = q.popleft()
+                # print(ci, cj)
+                if [ci, cj] == [cvi, cvj]:
+                    dr_candidate.append((idx, pi+dx[direct], pj+dy[direct], dist, direct))
+                    break
+                for dr in range(4):
+                    ni, nj = ci+dx[dr], cj+dy[dr]
+                    if 0<=ni<N and 0<=nj<N and road[ni][nj]==0:
+                        if v[ni][nj] == 0:
+                            if direct == -1:
+                                v[ni][nj] = 1
+                                q.append((ni, nj, dist+1, dr))
+                            else:
+                                v[ni][nj] = 1
+                                q.append((ni, nj, dist+1, direct))
+            move = dr_candidate[0] # [(0, 1, 1, 1, 2)] conv 번호, 옮겨간 i, j, dist, dr
+            people[idx] = [move[1], move[2]]
+            road_coor.append([idx, [move[1], move[2]]])
+    return road_coor
+
+
+t = 0
+while True:
+# for _ in range(2):
+    if 0 not in arrived:
+        break
+    # 1. 시작된 사람은 편의점을 향해 1칸 움직이기 => idx가 t보다 작은 사람
+    # get_move(t) => return [[idx, [ci, cj]],..] 이번 턴에 움직인 좌표, 현재 사람 자리
+    # get_move => 사람들 이동시키기
+    if t>0:
+        moved_list = get_move(t)
+        # 2. 이제 사람이 가지 못하는 칸 업데이트!
+        for ml in moved_list:
+            midx, coor = ml
+            if coor == conv[midx]: #도착한 사람은 도착행렬에 표시하고 통행금지
+                arrived[midx] = 1
+                road[coor[0]][coor[1]] = 1
+    if t < M:
+        init_basecamp = get_base()  # [bi, bj]
+        bi, bj = init_basecamp
+        # 베이스캠프 바로 통행 못하게 업데이트
+        people[t] = [bi, bj]
+        road[bi][bj] = 1
+    t += 1
+
+print(t)
+
