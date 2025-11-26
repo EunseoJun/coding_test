@@ -1,0 +1,223 @@
+from collections import deque
+dx = [-1, 1, 0, 0] # 상하좌우
+dy = [0, 0, -1, 1]
+# 초기 응시 영역
+stare_area = [[[0,-1],[0,0],[0,1]], [[0,-1],[0,0],[0,1]], [[-1,0],[0,0],[1,0]], [[-1,0],[0,0],[1,0]]]
+
+N, M = map(int, input().split())
+mi, mj, pi, pj = map(int, input().split())
+t_soldier = list(map(int, input().split()))
+# print(t_soldier)
+soldier = []
+for idx in range(0, 2*M, 2):
+    si = t_soldier[idx]
+    sj = t_soldier[idx+1]
+    soldier.append([si, sj])
+arr = [list(map(int, input().split())) for _ in range(N)]
+
+# 살아있는지 확인
+alive = [0]*M
+
+mv = [[0]*N for _ in range(N)]
+mv[mi][mj] = 1
+
+def medusa_move_bfs():
+    cand = []
+    v = [[0]*N for _ in range(N)]
+    q = deque()
+    v[mi][mj] = 1
+    q.append((mi, mj, [], 0))
+    while q:
+        ci, cj, road, dist = q.popleft()
+        for dr in range(4):
+            ni, nj = ci+dx[dr], cj+dy[dr]
+            if 0<=ni<N and 0<=nj<N and v[ni][nj]==0 and arr[ni][nj]==0:
+                if (ni, nj) == (pi, pj):
+                    cand.append([dist, [ni, nj], road])
+                    break
+                else:
+                    temp = road[:]
+                    temp.append([ni, nj])
+                    q.append((ni, nj, temp, dist+1))
+                    v[ni][nj] = 1
+    if cand == []:
+        return -1
+    cand.sort(key=lambda x:(x[0]))
+
+    return cand[0][2]
+
+
+def medusa_stare():
+    candidate = []
+    staring_area = []
+    for dr in range(4):
+        sv = [[0] * N for _ in range(N)]
+        visited = [[0] * N for _ in range(N)]  # 방문 체크 배열 추가!
+        # 마주친 군인 임시저장
+        temp_soldier = []
+        soldier_cnt = 0
+        temp_area = []
+        # 1. 초기 응시 영역 q에 추가
+        q = deque()
+        # 초기 좌표, 대각선 방향이었는지
+        for a in range(3):
+            if 0<=(mi+dx[dr]+stare_area[dr][a][0])<N and 0<=(mj+dy[dr]+stare_area[dr][a][1])<N:
+                ni = mi + dx[dr] + stare_area[dr][a][0]
+                nj = mj + dy[dr] + stare_area[dr][a][1]
+                q.append((ni, nj, [stare_area[dr][a][0], stare_area[dr][a][1]]))
+                visited[ni][nj] = 1  # 방문 표시!
+        while q:
+            sti, stj, direct = q.popleft()
+            # print(sti, stj)
+            for idx in range(M):
+                if alive[idx]==0 and [sti, stj] == soldier[idx]:
+                    temp_soldier.append([idx, direct])
+            sv[sti][stj] = 1
+            if abs(direct[0]+direct[1]) == 1: # 대각선 방향일 때
+                ni1, nj1 = sti + dx[dr] + direct[0], stj + dy[dr] + direct[1]
+                ni2, nj2 = sti + dx[dr], stj + dy[dr]
+                if 0 <= ni1 < N and 0 <= nj1 < N and visited[ni1][nj1] == 0:  # 방문 체크!
+                    q.append((ni1, nj1, [direct[0], direct[1]]))
+                    visited[ni1][nj1] = 1
+                if 0 <= ni2 < N and 0 <= nj2 < N and visited[ni2][nj2] == 0:  # 방문 체크!
+                    q.append((ni2, nj2, [direct[0], direct[1]]))
+                    visited[ni2][nj2] = 1
+            elif abs(direct[0]+direct[1]) == 0:
+                ni, nj = sti + dx[dr], stj + dy[dr]
+                if 0 <= ni < N and 0 <= nj < N and visited[ni][nj] == 0:  # 방문 체크!
+                    q.append((ni, nj, [direct[0], direct[1]]))
+                    visited[ni][nj] = 1
+        # print(sv)
+        # 군인들 영역 전개
+        # print('temp', temp_soldier)
+        for s in range(len(temp_soldier)):
+            idx = temp_soldier[s][0]
+            si, sj = soldier[idx][0], soldier[idx][1]
+            dd = temp_soldier[s][1]
+            # if alert[idx]==0 and alive[idx]==0:
+            if sv[soldier[idx][0]][soldier[idx][1]]==1:
+                # 각 군인마다 방문 배열 초기화!
+                visited2 = [[0] * N for _ in range(N)]
+                q = deque()
+                if 0<=si+dx[dr]<N and 0<=sj+dy[dr]<N:
+                    q.append((si+dx[dr], sj+dy[dr], dd))
+                    visited2[si+dx[dr]][sj+dy[dr]] = 1
+                if 0 <= si + dx[dr] + dd[0] < N and 0 <= sj + dy[dr] + dd[1] < N:
+                    if visited2[si+dx[dr]+dd[0]][sj+dy[dr]+dd[1]] == 0:
+                        q.append((si +dx[dr]+dd[0], sj+dy[dr]+dd[1], dd))
+                        visited2[si+dx[dr]+dd[0]][sj+dy[dr]+dd[1]] = 1
+            while q:
+                sti, stj, direct = q.popleft()
+                sv[sti][stj] = 0
+                if abs(direct[0] + direct[1]) == 1:  # 대각선 방향일 때
+                    ni1, nj1 = sti + dx[dr] + direct[0], stj + dy[dr] + direct[1]
+                    ni2, nj2 = sti + dx[dr], stj + dy[dr]
+                    if 0 <= ni1 < N and 0 <= nj1 < N and visited2[ni1][nj1] == 0:  # 방문 체크!
+                        q.append((ni1, nj1, [direct[0], direct[1]]))
+                        visited2[ni1][nj1] = 1
+                    if 0 <= ni2 < N and 0 <= nj2 < N and visited2[ni2][nj2] == 0:  # 방문 체크!
+                        q.append((ni2, nj2, [direct[0], direct[1]]))
+                        visited2[ni2][nj2] = 1
+                elif abs(direct[0] + direct[1]) == 0:
+                    ni, nj = sti + dx[dr], stj + dy[dr]
+                    if 0 <= ni < N and 0 <= nj < N and visited2[ni][nj] == 0:  # 방문 체크!
+                        q.append((ni, nj, [direct[0], direct[1]]))
+                        visited2[ni][nj] = 1
+        for idx in range(M):
+            si, sj = soldier[idx]
+            if sv[si][sj] == 1 and alive[idx]==0:
+                soldier_cnt+=1
+        # print(sv)
+        # print(dr,'-------') # cccc 전사들 전재할 때 뒤에 대각선도 잘 적용되는지 확인!
+        candidate.append([-soldier_cnt, dr, sv])
+    candidate.sort()
+    rd, stdr, result = candidate[0]
+    for i in range(N):
+        for j in range(N):
+            if result[i][j] == 1:
+                staring_area.append([i,j])
+    global rocked
+    for idx in range(M):
+        if alive[idx]==0 and soldier[idx] in staring_area:
+            # print('idx', idx)
+            alert[idx] = 1
+            rocked += 1
+
+    # print(result)
+    return staring_area
+
+def attack_soldier(idx, t):
+    global staring_area
+    global attacked
+    global moved_dist
+
+    if alive[idx]==0 and alert[idx]==0:
+        if t == 1:
+            dx = [-1, 1, 0, 0]
+            dy = [0, 0, -1, 1]
+        elif t == 2:
+            dx = [0, 0, -1, 1]
+            dy = [-1, 1, 0, 0]
+        si, sj = soldier[idx][0], soldier[idx][1]
+        min_dist = abs(mi-si)+abs(mj-sj)
+        mdr = -1
+        for dr in range(4):
+            ni, nj = si+dx[dr], sj+dy[dr]
+            if 0<=ni<N and 0<=nj<N and [ni, nj] not in staring_area:
+                dist = abs(mi-ni)+abs(mj-nj)
+                if dist<min_dist:
+                    mdr = dr
+                    min_dist = dist
+        if mdr != -1:
+            soldier[idx] = [si+dx[mdr], sj+dy[mdr]]
+            moved_dist += 1
+            if soldier[idx] == [mi, mj]:
+                alive[idx] = 1
+                attacked += 1
+
+mroad = medusa_move_bfs()
+if mroad == -1:
+    print(-1)
+    exit()
+mroad.append([pi, pj])
+# print(mroad)
+
+
+for t in range(len(mroad)):
+    # 각 턴마다 출력이기 때문에 초기화
+    # 전사 이동거리, 메두사 돌 된 전사의 수, 메두사 공격 전사의 수
+    # 이번 턴에 움직일 수 있는지 확인
+    alert = [0]*M
+    moved_dist = 0
+    rocked = 0
+    attacked = 0
+    mi, mj = mroad[t]
+    for m in range(M):
+        if alive[m] == 0:
+            if [mi, mj] == soldier[m]:
+                alive[m] = 1
+    # 집에 도착하면 종료
+    if (mi, mj) == (pi, pj):
+        print(0)
+        exit()
+    # 1. 메두사 한 칸 이동 =>medusa_move()
+    # 메두사 좌표 갱신하고, 해당 칸에 전사 있으면 alive[idx]=1
+    # print(mi, mj)
+    # print('move medus', mi, mj)
+    # 2. 메두사 응시 => medusa_stare()
+    # return staring_area = medusa_stare(), [[1,1]...] 메두사 응시 영역
+    # 응시할 방향 찾고, 응시 후 돌 된 전사들 alert에 업데이트, 응시영역 리스트 리턴
+    # medusa_stare()
+    staring_area = medusa_stare()
+    # print(alert)
+    # print('st', staring_area)
+    # print(staring_area)
+    # print(rocked)
+    # 3. 전사의 공격 => 서로 영향 안받으므로 바로 업데이트해도 됨
+    # for 0~M까지 move_soldier(idx, 1), move(idx, 2) 첫번째 두 번째 돌리기
+    for idx in range(M):
+        attack_soldier(idx, 1) # 메두사 만났을 시 attcked 업데이트하기
+        attack_soldier(idx, 2)
+    # print(soldier)
+    # print(alive)
+    print(moved_dist, rocked, attacked)
