@@ -1,0 +1,214 @@
+# # 20251127
+# 4시간 30분 소요
+# 회고
+# 항상 틀리는 부분을 보면 뭔가 트리거를 당겨서 if True
+# 이런식으로 하는부분인데, 여기서 항상 예외가 자꾸 발생한다
+# 이런 패턴에 대해 복습하고 틀리지 않는 코드 패턴을 체화할 필요가 있다
+# 틀리는 패턴은 항상 비슷
+# 뭔가 트리거해서 올라가는 부분의 끝에서 예외
+# 또는
+# 초기에 -1로 초기화했는데 조건 성립 안해서 안됐을 경우, 갱신 안하는 예외처리 빠트림
+
+# # 미생물 연구
+# N*N 크기의 격자에서 진행
+# 좌측하단=>0,0 원래 N, 0
+# 우측상단=>N,N 원래 0, N
+# => 열이 바뀜
+# 0 => N
+# 1 => N-1
+# 2 => N-2
+# ...
+# N=>N-N=0
+#
+# Q번의 실험을 진행하여 각 실험의 결과를 기록함
+# 1. 미생물 투입
+# 1-1. 좌측 하단의 좌표가 (r1, c1), 우측 상단의 좌표가 (r2, c2)인 직사각형 영역에 미생물 투입
+# => inserted_turn => 미생물 투입 기록
+# 1-2. 기존에 있던 다른 미생물은 잡아먹힘-> 만나면 먹혔다는거 적어두고, 갱신
+# 1-3. 기존 미생물 무리가 잡아먹히면 배양용기에서 사라짐
+# 2. 배양용기 이동
+# 2-1. 모든 미생물을 새로운 용기로 이동
+# 2-2. 영역이 가장 넓은 무리부터 이동, 이런 무리가 둘 이상이면 가장 먼저 투입된 미생물부터 옮김
+# 2-3. 선택된 미생물 무리를 옮김. 형태를 유지해야하며 배양용기 영역 안+다른 미생물과 겹치지 않게 두어야 함
+# 2-3-1. 이 조건 안에서 최대한 x좌표(j)가 작은 위치로 미생물을 옮겨야 함, 둘 이상이면 y가 작은 위치로
+# 2-4. 어떤 곳에도 둘 수 없는 미생물 무리는 사라짐
+# 3. 실험결과 기록
+# 3-1. 상하좌우로 맞닿은 면이 있는 무리끼리는 '인접한 무리'
+# 3-2. 모든 인접한 무리 확인, 맞닿은 면이 2개 이상이라도 (A, B)는 한 번만 확인
+# 3-3. A 미생물 영역 넓이 * B 미생물 영역 넓이만큼의 성과
+# 4. 각 턴마다 성과를 출력
+from collections import deque
+dx = [-1, 0, 1, 0]
+dy = [0, -1, 0, 1]
+N, Q = map(int, input().split())
+tmicro = [list(map(int, input().split())) for _ in range(Q)]
+micro = []
+insert_turn = [0]*Q
+for idx in range(Q):
+    r1, c1, r2, c2 = tmicro[idx]
+    # 가로 길이 => r2-r1
+    hori = r2-r1
+    # 세로 길이 => c2-c1
+    vert = c2-c1
+    # 우측 상단 => N-c2
+    r = N-c2
+    c = r1
+    micro.append([[r, c], vert, hori])
+# print('inseted', micro)
+arr = [[0]*N for _ in range(N)]
+def insert_micro(idx):
+    insert_turn[idx] = idx
+    # 1. 채우기
+    metmicro = set()
+    fill = idx+1
+    ms, y, x = micro[idx]
+    mi, mj = ms
+    for i in range(y):
+        for j in range(x):
+            ci, cj = mi+i, mj+j
+            if arr[ci][cj]>0:
+                metmicro.add(arr[ci][cj]) # 없어진 미생물 기록
+            arr[ci][cj] = fill
+    # 2. 없어진 미생물 검사하기
+
+    for idx in metmicro:
+        erase = False
+        cnt = 0
+        v = [[0]*N for _ in range(N)]
+        for i in range(N):
+            if cnt>1:
+                erase = True
+                break
+            for j in range(N):
+                if cnt > 1:
+                    erase = True
+                    break
+                if arr[i][j] == idx and v[i][j]==0:
+                    cnt += 1
+                    q = deque()
+                    q.append((i,j))
+                    v[i][j] = 1
+                    while q:
+                        ci, cj = q.popleft()
+                        for dr in range(4):
+                            ni, nj = ci+dx[dr], cj+dy[dr]
+                            if 0<=ni<N and 0<=nj<N and v[ni][nj]==0 and arr[ni][nj]==idx:
+                                v[ni][nj] = 1
+                                q.append((ni, nj))
+        if cnt>1:
+            # print(arr)
+            for i in range(N):
+                for j in range(N):
+                    if arr[i][j] == idx:
+                        arr[i][j] = 0
+    # 3. 현재 존재하는 미생물들 시작+몸 상태위치 만들기
+    micro_body = [] # [[idx, [si,sj],[[-1,0]...]] => 메모리 터지진 않겠지,,?
+    v = [[0]*N for _ in range(N)]
+    for i in range(N):
+        for j in range(N):
+            if arr[i][j]>0 and v[i][j]==0:
+                temp_body = []
+                midx = arr[i][j]
+                q = deque()
+                q.append((i, j))
+                v[i][j] = 1
+                temp_body.append([0, 0])
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<N and 0<=nj<N and arr[ni][nj]==midx and v[ni][nj]==0:
+                            v[ni][nj] = 1
+                            q.append((ni, nj))
+                            temp_body.append([ni-i, nj-j])
+                micro_body.append([len(temp_body), insert_turn[arr[i][j]-1], arr[i][j], [i,j], temp_body])
+    return micro_body
+
+def move_micron():
+    global micros
+    new_arr = [[0]*N for _ in range(N)]
+    for sidx in range(len(micros)):
+        mdi, mdj = -1, -1
+        ed = False
+        _, _, idx, scoor, body = micros[sidx]
+        # for i in range(N-1, -1, -1):
+        for j in range(N):
+            if ed:  break
+            for i in range(N - 1, -1, -1):
+            # for j in range(N):
+                mvd = True
+                # print(i, j)
+                if new_arr[i][j]==0:
+                    for ti, tj in body:
+                        ni, nj = i+ti, j+tj
+                        if 0<=ni<N and 0<=nj<N and new_arr[ni][nj]==0:
+                            pass
+                        else:
+                            mvd = False
+                            break
+                    if mvd:
+                        mdi, mdj = i, j
+                        ed = True
+                        break
+        if (mdi, mdj) != (-1, -1):
+            new_arr[mdi][mdj] = idx
+            for ti, tj in body:
+                new_arr[mdi+ti][mdj+tj] = idx
+    global arr
+    arr = [row[:] for row in new_arr]
+
+def search():
+    body = [0]*Q
+    rel = [[] for _ in range(Q)]
+    for i in range(N):
+        for j in range(N):
+            if arr[i][j]>0:
+                v = [[0] * N for _ in range(N)]
+                cnt_body = 1
+                midx = arr[i][j]
+                v[i][j] = 1
+                q = deque()
+                q.append((i, j))
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<N and 0<=nj<N and v[ni][nj]==0:
+                            if arr[ni][nj] == midx:
+                                v[ni][nj] = 1
+                                cnt_body += 1
+                                q.append((ni, nj))
+                            elif arr[ni][nj]>0 and arr[ni][nj] != midx:
+                                v[ni][nj] = 1
+                                if arr[ni][nj]-1 not in rel[midx-1]:
+                                    rel[midx-1].append(arr[ni][nj]-1)
+                body[midx-1] = cnt_body
+    calc = [[0]*Q for _ in range(Q)]
+    score = 0
+    for idx in range(len(rel)):
+        close = rel[idx]
+        if close != []:
+            for c in close:
+                if calc[c][idx]==0:
+                    calc[c][idx] = 1
+                    calc[idx][c] = 1
+                    score += body[c]*body[idx]
+    # print(score)
+    return score
+
+
+for t in range(Q):
+    # 1. 미생물 투입 => insert_micro(t)
+    micros = insert_micro(t) # output: [[12, 0, 1, [2, 2], [[2, 2],=> 몸 크기, insert_turn, idx, 몸들
+    # 미생물 무리 크기랑 투입 턴 비교해서 우선순위 정하기
+    micros.sort(key=lambda x:(x[0], -x[1]), reverse=True)
+    # print(micros)
+    # 2-1. 미생물 이동 => move_micron()
+    # print('arr', arr)
+    move_micron()
+    # print('new arr', arr)
+    # print(t, '------------')
+    # 위치 이동시키기 => x(j), y(i) 순서 유의하기!
+    # 3. 인접무리 검사 => search()
+    score = search()
+    print(score)
