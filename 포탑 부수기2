@@ -1,0 +1,176 @@
+# # 소요시간: 4시간 이상
+# 회고
+# 구현 자체는 2시간에 끝내놓고 중간에 함수 디버깅한다고 실행 시킨거
+# 주석처리 안해서 3시간 날렸음
+# 코테 가서도 이런 실수 하면 어떡하지 진짜..
+# 정신을 바짝 차리고 풀어야겠다
+# 1. 놓친 조건 없나 확인
+# 2. 동시에 갱신하면 안되는데 갱신한것 있는지 확인
+# 3. //N, //M 확인
+# 4. i,j 바꿔쓴거 확인
+# 5. 함수 디버깅한다고 찍어놓고 실행부 주석처리 안했는지 확인
+
+# # 포탑 부수기
+# N*M 격자, 모든 위치에 포탑 존재
+# 각 포탑엔 공격력 존재, 공격력이 0이 되면 => 부서진 포탑
+# 총 K번의 턴이 반복됨
+#
+# 1. 공격자 선정
+# 1-1. 부서지지 않은 가장 약한 포탑이 공격자로 선정, 선정되면 N+M만큼 공격력 증가
+# 1-2. 가장 약한 포탑은 공격력 낮음>가장 최근 공격 포탑>행+열 합이 가장 큰 포탑>열이 가장 큰 포탑
+# 2. 공격
+# 2-1. 공격력이 가장 높은 포탑을 공격대상으로 선정
+# 2-2. 공격력 가장 높은>가장 오래 전에 공격한>행+열 합이 가장 작은>열값 가장 작은
+# 3. 레이저 공격
+# 3-1. 상하좌우 4개 방향으로 진행
+# 3-2. 부서진 포탑은 못지나감
+# 3-3. 가장자리에선 반대 방향으로 나옴 => int((ci+dx[dr])%4)
+# 3-4. 최단거리가 여러개면 우하좌상의 순서대로 선택
+# 3-5. 공격대상을 공격자의 공격력만큼 피해, 경로에 있던 포탑들은 //2만큼 피해
+# 4. 포탄공격
+# 4-1. 공격 대상에 포탄 투척=>공격 대상은 공격자 공격력만큼  피해를 입음
+# 4-2. 주위에 있는 8개 방향의 포탑은 절반 피해 //2 => 포탑이 음수가 되지 않게 조심
+# => 피해 입을 때도 반대편으로 넘어갈 수 있음 %4해서 피해 주기
+# 5. 포탑 정비
+# 5-1. 공격과 무관했던 포탑은 공격력이 1씩 올라감
+# 6. 모든 턴이 끝난 후 가장 강한 포탑의 공격력 출력
+
+dx = [0, 1, 0, -1] # 우하좌상
+dy = [1, 0, -1, 0]
+
+from collections import deque
+
+N, M, K = map(int, input().split())
+arr = [list(map(int, input().split())) for _ in range(N)]
+attack_turn = [[0]*M for _ in range(N)]
+
+def attacker():
+    candidate = []
+    power = 5001
+    for i in range(N):
+        for j in range(M):
+            if arr[i][j] != 0:
+                if arr[i][j] < power:
+                    power = arr[i][j]
+                    candidate = [[attack_turn[i][j], i+j, j, [i, j]]]
+                elif arr[i][j] == power:
+                    candidate.append([attack_turn[i][j], i+j, j, [i,j]])
+    candidate.sort(key=lambda x:(x[0], x[1], x[2]), reverse=True)
+    return candidate[0][3][0], candidate[0][3][1]
+
+def attacked():
+    global ai
+    global aj
+    candidate = []
+    power = -1
+    for i in range(N):
+        for j in range(M):
+            if arr[i][j] != 0 and (i,j) != (ai, aj):
+                if arr[i][j] > power:
+                    power = arr[i][j]
+                    candidate = [[attack_turn[i][j], i+j, j, [i, j]]]
+                elif arr[i][j] == power:
+                    candidate.append([attack_turn[i][j], i+j, j, [i,j]])
+    candidate.sort(key=lambda x:(x[0], x[1], x[2]))
+
+    return candidate[0][3][0], candidate[0][3][1]
+
+def attack_bfs(ai, aj, adi, adj):
+    candidate = []
+    v = [[0]*M for _ in range(N)]
+    q = deque()
+    q.append((ai, aj, 0, [])) # 이 부분 메모리 많이 먹을거 같은데 개선 방법 없나 확인하기
+    v[ai][aj] = 1
+    min_dist = N*N*2
+    while q:
+        ci, cj, dist, road = q.popleft()
+        if dist<=min_dist:
+            if (ci, cj) == (adi, adj):
+                min_dist = dist
+                candidate.append([dist, [[ci, cj] , road]])
+            else:
+                for dr in range(4):
+                    ni, nj = int((ci+dx[dr])%N), int((cj+dy[dr])%M)
+                    if 0<=ni<N and 0<=nj<M and v[ni][nj]==0 and arr[ni][nj]!=0:
+                        v[ni][nj] = 1
+                        temp = road[:]
+                        temp.append([ni, nj])
+                        q.append((ni, nj, dist+1, temp))
+    if candidate==[]:
+        return -1
+    else:
+        candidate.sort(key=lambda x:x[0])
+        return candidate[0][1]
+
+
+
+def attack(ai, aj, adi, adj):
+    global ap
+    # 1. 레이저 공격
+    # 최단거리 찾고 있으면 최단거리 행렬, 없으면 -1
+    # attack_bfs(ai, aj, adi, adj)
+    laser = attack_bfs(ai, aj, adi, adj) # [[공격대상], [...]]
+    if laser != -1:
+        arr[laser[0][0]][laser[0][1]] -= ap
+        if arr[laser[0][0]][laser[0][1]]<0:
+            arr[laser[0][0]][laser[0][1]] = 0
+        for ati, atj in laser[1][:-1]: # 끝 부분에 공격대상이 딸려와서 이렇게 처리
+            arr[ati][atj] -= int(ap//2)
+            if arr[ati][atj] < 0:
+                arr[ati][atj] = 0
+        laser[1].append([ai, aj]) # 공격자 추가
+        return laser[1]
+    # 2. 포탄 공격
+    else:
+        arr[adi][adj] -= ap
+        if arr[adi][adj] < 0:
+            arr[adi][adj] = 0
+        rel = []
+        for x, y in [(-1,0), (-1,1), (0,1), (1, 1), (1, 0), (1,-1), (0, -1), (-1,-1)]:
+            ni, nj = int((adi+x)%N), int((adj+y)%M)
+            # print(ni, nj)
+            if 0<=ni<N and 0<=nj<M and arr[ni][nj]!=0 and (ai,aj)!=(ni,nj):
+                arr[ni][nj] -= int(ap//2)
+                if arr[ni][nj]<0:
+                    arr[ni][nj] = 0
+                rel.append([ni, nj])
+        rel.append([adi, adj])
+        rel.append([ai, aj])
+        return rel
+
+
+
+for t in range(K):
+    cnt = 0
+    for i in range(N):
+        for j in range(M):
+            if arr[i][j]>0:
+                cnt+=1
+    if cnt == 1:
+        break
+    # 1. 공격자 선정 => attacker = attcker() return ai,aj
+    ai, aj = attacker()
+    attack_turn[ai][aj] = t+1
+    # 2. 공격대상 선정 => attacked = attacked() return adi, adj
+    adi, adj = attacked()
+    # attack_turn[adi][adj] = t+1
+    arr[ai][aj] += N + M
+    ap = arr[ai][aj]
+    # # 3. 공격 => attack(attacker, attacked) return [(0,1), (...] 공격관련자들 좌표
+    attack_relate = attack(ai, aj, adi, adj)
+    # # 4. 수리
+    for i in range(N):
+        for j in range(M):
+            if [i, j] not in attack_relate and arr[i][j] != 0 and (i,j)!=(ai,aj) and (i, j)!=(adi,adj):
+                arr[i][j] += 1
+
+maxp = 0
+for i in range(N):
+    for j in range(M):
+        if arr[i][j]>maxp:
+            maxp = arr[i][j]
+print(maxp)
+
+
+
+
