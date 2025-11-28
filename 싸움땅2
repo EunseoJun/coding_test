@@ -1,0 +1,144 @@
+# 20251128
+# 소요시간: 1시간 10분
+# 회고: 빨라지기는 한거같다
+# 첨엔 어떻게 해야 빨리 구현할지, 어떻게 받는지가 좀 어려웠는데 두번째 푸니까
+# 호출을 훨씬 간단하게 하고, 실수하는 부분을 알아서 훨씬 빨라졌다
+# 그럼에도 자잘하게 dr%4 이런거 빠트려서, 잘 확인하기
+
+# # 싸움땅 - 2차
+# n*n 크기의 격자에서 진행, 각각의 격자에는 무기'들'이 있을 수 있음
+# 무기 없는 격자에 플레이어들 위치, 플레이어들은 초기 능력치를 가짐
+# 1. 첫번째 플레이어부터 순차적으로 본인이 향하고 있는 방향대로 한 칸 이동
+# 1-1. 격자를 벗어나는 경우 정반대 방향으로 1칸 이동 => int((dr+2)%4)
+# 2-1. 이동한 칸에 플레이어가 없다면
+# 2-1-1. 해당 칸에 총이 있는지 확인 후, 해당 플레이어는 총 획득, 이미 가지고 있는 경우 가장 센 총으로 획득
+# 2-2. 해당 칸에 플레이어가 있다면
+# 2-2-1. 두 플레이어의 초기 능력치+총의 공격력의 합을 비교하여 더 큰쪽이 이김
+# => 수치가 같은 경우 초기 능력치가 높은 플레이어가 승리
+# 2-2-2. 이긴 플레이어는 상대 총 능력치와의 차만큼 포인트로 획득
+# 2-3. 진 플레이어는 본인이 갖고 있는 총을 해당 격자에 내려놓음,
+# 2-3-1. 원래 갖고 있던 방향으로 한 칸 이동 => 격자 밖이거나 다른 플레이어가 있으면 오른쪽으로 90도씩 회전하여 이동
+# 오른쪽으로 90도 회전=>int((dr+1)%4)
+# 2-3-2. 이동한 칸에 총이 있다면 공격력 가장 높은 총 획득, 나머지는 내려놓음
+# 2-4. 이긴 플레이어는 가장 공격력이 높은 총을 획득
+# 3. k라운드동안 각 라운드에 획득한 포인트를 출력
+
+dx = [-1, 0, 1, 0] # 상우하좌
+dy = [0, 1, 0, -1]
+
+N, M, K = map(int, input().split())
+tarr = [list(map(int, input().split())) for _ in range(N)]
+arr = []
+score = [0]*M
+for i in range(N):
+    temp = []
+    for j in range(N):
+        temp.append([tarr[i][j]])
+    arr.append(temp)
+player = []
+init_power = []
+direction = []
+player_gun = [0] * M
+
+for _ in range(M):
+    i, j, d, s = map(int, input().split())
+    player.append([i-1, j-1])
+    direction.append(d)
+    init_power.append(s)
+
+# print(player, direction, init_power)
+# print(arr)
+def move_player(idx):
+    # 1. 움직이기
+    pi, pj = player[idx]
+    dr = direction[idx]
+    ni, nj = pi+dx[dr], pj+dy[dr]
+    if not (0<=ni<N and 0<=nj<N):
+        dr = int((dr+2)%4)
+    player[idx] = [pi+dx[dr], pj+dy[dr]]
+    direction[idx] = dr
+
+    # 2. 해당 칸에 사람 있나 검사
+    for m in range(M):
+        if m!=idx:
+            if player[idx] == player[m]:
+                return m
+    return -1
+
+def get_gun(idx):
+    pi, pj = player[idx]
+    if arr[pi][pj][-1] > player_gun[idx]:
+        gun = arr[pi][pj].pop()
+        tgun = player_gun[idx]
+        player_gun[idx] = gun
+        arr[pi][pj].append(tgun)
+        arr[pi][pj].sort()
+
+def fight(idx, fidx):
+    winner = -1
+    loser = -1
+    pidxp = init_power[idx]
+    fidxp = init_power[fidx]
+    pgun = player_gun[idx]
+    fgun = player_gun[fidx]
+    pp = pidxp+pgun
+    fp = fidxp+fgun
+    if pp>fp:
+        winner = idx
+        loser = fidx
+    elif pp<fp:
+        winner = fidx
+        loser = idx
+    elif pp == fp:
+        if pidxp>fidxp:
+            winner = idx
+            loser = fidx
+        elif pidxp<fidxp:
+            winner = fidx
+            loser = idx
+    score[winner] += abs(pp-fp)
+    return winner, loser
+
+def lose(idx):
+    li, lj = player[idx]
+    # 1. 총 내려놓기
+    if player_gun[idx] > 0: # 총이 있으면
+        arr[li][lj].append(player_gun[idx])
+        arr[li][lj].sort()
+        player_gun[idx] = 0
+    # 2. 이동하기 => 갈 곳이 없으면,,, 그냥 그 자리에 있나? 그런 일은 없겠지
+    dr = direction[idx]
+    ni, nj = li+dx[dr], lj+dy[dr]
+    if not (0<=ni<N and 0<=nj<N and [ni, nj] not in player):
+        for d in range(3):
+            dr = int((dr+1)%4)
+            ni, nj = li+dx[dr], lj+dy[dr]
+            if 0<=ni<N and 0<=nj<N and [ni, nj] not in player:
+                break
+    player[idx] = [ni, nj]
+    direction[idx] = dr
+    # 3. 총 다시 획득하기
+    get_gun(idx)
+
+def win(idx):
+    get_gun(idx)
+
+for t in range(K):
+    for idx in range(M):
+        # 1. 이동 시키기 => move_player(idx)
+        fidx = move_player(idx)
+        # # return 사람 있으면 fidx, 사람 없으면 -1
+        # # 2.
+        if fidx == -1:
+            get_gun(idx)
+        else:
+            winner, loser = fight(idx, fidx) # 싸우고 이긴 사람, 진 사람 리턴
+            lose(loser) # 진사람 이동하고 + 함수 내에서 get_gun
+            win(winner) # 총 줍기
+
+    # print(player)
+    # print(player_gun)
+    # print(arr)
+    # print(score)
+print(*score)
+
