@@ -1,0 +1,103 @@
+# 20251129
+# 소요시간: 1시간 11분
+# 회고
+# 아직도 문제를 제대로 안읽는다
+# 마지막 출력 조건도 꼭 상세히 읽을것
+# 그거 아니었으면 1시간 컷했다
+
+# # 왕실의 기사 대결
+# L*L 크기의 체스판 위에서 대결
+# 각 칸은 빈칸, 함정, 벽, 체스판 밖도 벽
+# 왕실의 기사들은 자신의 마력으로 상대를 밀칠 수 있음
+# 기사들의 초기 위피는 (r, c) 좌상단으로 하여 h*w, 기사의 체력은 k
+# 1. 기사 이동
+# 1-1. 명령에따라 상하좌우 중 한 칸 이동
+# 1-2. 다른 기사가 있으면 그 기사도 연쇄적으로 한 칸 밀림
+# 1-3. 이동하려는 끝에 벽이 있으면 움직일 수 없음
+# 2. 대결 데미지
+# 2-1. 밀쳐진 기사들은 피해를 입음, 이동한 곳에서 몸체 안에 있는 함정의 수만큼
+# =>명령 당사자는 피해 없음
+# 2-2. 기사들은 모두 밀린 후 대미지
+# 3. Q번의 턴이 모두 끝난 후 생존한 기사들의 대미지의 합을 출력
+from collections import deque
+L, N, Q = map(int, input().split())
+arr = [list(map(int, input().split())) for _ in range(L)] # 0빈칸, 1함정, 2벽
+alive = [0]*N
+power = []
+knight = []
+knight_body = []
+score = [0]*N
+# print(score)
+for _ in range(N):
+    r,c,h,w,k = map(int, input().split())
+    power.append(k)
+    knight.append([r-1, c-1, h, w])
+    bd = []
+    for i in range(r-1, r+h-1):
+        for j in range(c-1, c+w-1):
+            bd.append((i, j))
+    knight_body.append(bd)
+command = []
+
+for _ in range(Q):
+    idx, dr = map(int, input().split())
+    command.append([idx-1, dr]) # idx 0에서 시작하도록
+dx = [-1, 0, 1, 0]
+dy = [0, 1, 0, -1] # 상우하좌
+
+def attack(idx, direct):
+    rel = set()
+    rel.add(idx)
+    q = deque()
+    q.append((idx, direct))
+    while q:
+        aidx, dr = q.popleft()
+        for ci, cj in knight_body[aidx]:
+            ni, nj = ci+dx[dr], cj+dy[dr]
+            if 0<=ni<L and 0<=nj<L and arr[ni][nj] != 2:
+                for tidx in range(N):
+                    if tidx!=aidx and (ni, nj) in knight_body[tidx]:
+                        if tidx not in rel: # 중복해서 들어오는거 방지
+                            q.append((tidx, direct))
+                            rel.add(tidx)
+            else:
+                return -1
+
+    return list(rel)
+
+
+
+for t in range(Q):
+    idx, direct = command[t]
+    if alive[idx]==1:   continue # 죽었으면 반응 X
+    # 1. 밀치기 => attack(idx, direct) => [1, 2...] 연관 기사들 idx, 안밀쳐지면 -1
+    at = attack(idx, direct)
+    # print(at)
+    if at != -1:
+        # 연관 기사들 몸 밀기
+        for aidx in at:
+            temp = []
+            for si, sj in knight_body[aidx]:
+                temp.append((si+dx[direct], sj+dy[direct]))
+            knight_body[aidx] = temp
+        #2-1. 밀쳐진 기사들 피해 입히기
+        for aidx in at:
+            if aidx!=idx: # 명령 받은 기사는 피해 안입음
+                # print(aidx)
+                for si, sj in knight_body[aidx]:
+                    if arr[si][sj] == 1:
+                        power[aidx] -= 1
+                        score[aidx] += 1
+        for p in range(N):
+            if power[p]<=0:
+                power[p] = 0
+                alive[p] = 1
+                knight_body[p] = []
+
+anw = 0
+for p in range(N):
+    if alive[p] == 0:
+        anw += score[p]
+print(anw)
+
+
