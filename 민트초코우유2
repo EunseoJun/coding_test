@@ -1,0 +1,168 @@
+# 20251201
+# 소요시간: 못풀었다고 봐야할듯
+# 회고
+# 이번엔 sort를 빠트렸다
+# 코드가 완성된 후에는 정말로 뭐가 틀렸는지 알 수가 없는거 같다
+# 허겁지겁 구현하지 말고, 함수가 끝난 후에 다시 한 번 점검하는게 정말정말 중요하다
+# 실전에서는 함수 하나 완성할 때마다 검토에 10분은 써야겠다
+
+# 민트초코우유
+# N*N 크기의 격자
+# Fij가 학생이 초기에 신봉하는 음식, T,C,M
+# T민트, C초코, M우유
+# 민트초코우유 셋 중 하나만 처음에 신봉=>이후 전파에 따라 섞임
+# 각 학생은 초기 신앙심을 갖고 있음
+# T일 동안 아침, 점심, 저녁 순서로 진행
+# 1. 아침
+# 1-1. 모든 학생은 신앙심을 1씩 얻음
+# 2. 점심
+# 2-1. 인접한 학생과 신봉 음식이 완전히 같은 경우에만 그룹
+# 2-2. 대표자 한 명을 선정
+# 2-2-1. 신앙심 가장 큰>r이 작은>c가 작은
+# 2-3. 대표를 제외한 그룹원들은 각자 신앙심 1씩을 대표자에게 넘김
+# 3. 저녁
+# 3-1. 단일-이중-삼중, 세 그룹 순서대로 전파
+# 3-2. 대표자의 신앙심 높은 순>대표자 r작>대표자 c작
+# 3-3. 대표자는 1만 남기고 나머지를 간절함(x)으로 바꿔 전파
+# >방향은 이전 신앙심%4에 따라 0,1,2,3=>상하좌우
+# 3-4. 전파자는 한 칸씩 이동하면서 전파 시도, 격자 밖이거나 0이되면 종료
+# 3-5. 신봉음식 같으면 전파 안함
+# 3-6. 강한전파
+# 3-6-1. x>y일 때 전파자의 사상에 동화됨
+# => 전파자와 동일 음식 신봉, 전파자 간절함 -(y+1), 전파대상자 y+1
+# 3-7. 약한전파
+# 3-7-2. x<=y일 때, 전파당한 음식'도' 좋아하게 됨
+# 전파당한 당일 날은 방어 상태 돼서 전파 못함
+# => 대상의 신앙심 x만큼 증가, 전파 종료
+# 4. 각 날의 저녁이 끝난 후, 순서대로 각 음식 신봉자들의 신앙심 총합 출력
+from collections import deque
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1] # 전파방향 상하좌우
+N, T = map(int, input().split())
+food = [[[0] for _ in range(N)] for _ in range(N)]
+
+for r in range(N):
+    temp = list(map(str, input().strip()))
+    for idx in range(N):
+        food[r][idx] = set(temp[idx])
+
+blv = [list(map(int, input().split())) for _ in range(N)]
+
+def lunch():
+    seq = []
+    v = [[0]*N for _ in range(N)]
+    for i in range(N):
+        for j in range(N):
+            if v[i][j] == 0:
+                cand = []
+                body = []
+                q = deque()
+                val = food[i][j]
+                v[i][j] = 1
+                q.append((i, j))
+                body.append((i,j))
+                mblv = blv[i][j]
+                cand = [[blv[i][j], i, j]]
+                gcnt = 1
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<N and 0<=nj<N and v[ni][nj]==0 and food[ni][nj]==val:
+                            body.append((ni, nj))
+                            q.append((ni, nj))
+                            v[ni][nj] = 1
+                            gcnt += 1
+                            if blv[ni][nj]>mblv:
+                                cand = [[blv[ni][nj], ni, nj]]
+                                mblv = blv[ni][nj]
+                            elif blv[ni][nj] == mblv:
+                                cand.append([blv[ni][nj], ni, nj])
+                cand.sort(key=lambda x: (x[1], x[2]))
+                blv[cand[0][1]][cand[0][2]] += gcnt-1
+                # print(body)
+                for bd in body:
+                    if (cand[0][1], cand[0][2])!=bd:
+                        bi, bj = bd
+                        blv[bi][bj] -= 1
+
+                seq.append([len(food[cand[0][1]][cand[0][2]]), -blv[cand[0][1]][cand[0][2]], cand[0][1], cand[0][2]])
+    return seq
+
+def dinner(seq):
+    depen = [[0]*N for _ in range(N)]
+    for _, ox, si, sj in seq:
+        # if depen[si][sj] == 1:
+            # print('depen!!!!!!11', food[si][sj])
+        if depen[si][sj] == 0:
+            ox = blv[si][sj]
+            dr = int(ox%4)
+            x = ox - 1
+            blv[si][sj] = 1
+            q = deque()
+            q.append((si, sj))
+            valu = food[si][sj].copy()
+            while q:
+                if x==0: break
+                ci, cj = q.popleft()
+                ni, nj = ci+dx[dr], cj+dy[dr]
+                if 0<=ni<N and 0<=nj<N:
+                    # 신봉음식 같을때
+                    if valu==food[ni][nj]:
+                        q.append((ni, nj))
+                    # 신봉음식 다를 때
+                    else:
+                        depen[ni][nj] = 1
+                        y = blv[ni][nj]
+                        # x>y 강한 전파
+                        if x>y:
+                            food[ni][nj] = valu
+                            x -= (y+1)
+                            y += 1
+                            blv[ni][nj] = y
+                            if x>0:
+                                q.append((ni, nj))
+                        # x<=y 약한 전파
+                        elif x<=y:
+                            tfood = list(food[ni][nj])
+                            txfood = list(valu)
+                            tfood.extend(txfood)
+                            food[ni][nj] = set(tfood)
+                            y += x
+                            blv[ni][nj] = y
+                            x = 0
+                            break
+
+
+for t in range(T):
+    anw = [0]*7
+    # 1. 아침 => 모든 학생 신앙심 +1
+    for i in range(N):
+        for j in range(N):
+            blv[i][j] += 1
+    # 2. 점심, 그룹 만들고+대표자 선정, 대표자 return
+    # lunch() => return [[len(선호음식), -신앙심, r,c],...]
+    seq = lunch()
+    seq.sort() # [[1, -28, 1, 1], [1, -15, 2, 0], [1, -14, 1, 3], [1, -5, 0, 2]]
+    # 3. 저녁, 순서대로 전파
+    dinner(seq)
+    # 4. 각 음식 신봉자들의 신앙심의 총합 출력
+    for i in range(N):
+        for j in range(N):
+            val = food[i][j]
+            if 'M' in val and 'C' in val and 'T' in val:
+                anw[0] += blv[i][j]
+            elif 'T' in val and 'C' in val:
+                anw[1] += blv[i][j]
+            elif 'T' in val and 'M' in val:
+                anw[2] += blv[i][j]
+            elif 'C' in val and 'M' in val:
+                anw[3] += blv[i][j]
+            elif 'M' in val:
+                anw[4] += blv[i][j]
+            elif 'C' in val:
+                anw[5] += blv[i][j]
+            elif 'T' in val:
+                anw[6] += blv[i][j]
+    print(*anw)
+
