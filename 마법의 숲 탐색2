@@ -1,0 +1,114 @@
+# 20251201
+# 소요시간: 1시간 57분
+# 로직 세우고 맞게 구현하는데 시간을 좀 썼다
+# 답 맞는다고 넘어가는게 아니라
+# 각 단계마다 수행이 제대로 되고 있는지를 트래킹하면 히든테케에서 틀릴 일은 없는거 같다
+# 구현 자체는 맞게 잘하는데
+# 자잘하게 구현하다가 조건식 오타가 나는 경우가 많다
+# 꼼꼼하게 확인하면 틀리지 않는거 같다
+
+# 마법의 숲 탐색
+# R*C 크기의 격자에서 진행
+# 동서남은 막혀있음, 북쪽을 통해서만 숲에 들어올 수 있음
+# K명의 정령은 골렘을 타고 숲은 탐색, 십자모양의 구조를 가지고 있음
+# 골렘의 중앙을 제외한 4칸 중 한 칸은 골렘의 출입구
+# 정령은 정해진 출구를 통해서만 내릴 수 있음
+# i번째로 숲을 탐색하는 골렘은 바깥에서 시작해서 중앙이 c열이 되도록하는 위치에서 내려오기 시작함
+# 골렘의 출구는 0~3, 북동남서 방향에 위치(상우하좌)
+# 1. 남쪽으로 한 칸 내려감
+# 1-1. 좌하우의 r-1이 비어있어야 내려갈 수 있음
+# 2. 내려갈 수 없으면 서쪽으로 회전하면서 내려감
+# 2-1. 좌를 기준으로 상좌하의 c-1, 좌의 c-1, r+1, 하의 r-1, c+1들이 비어있어야 갈 수 있음
+# 2-2. 출구가 반시계 방향으로 이동 => 상좌하우 => direction 기준 -1=> int((dr-1)%4)
+# 3. 둘 다 안되면 동쪽으로 회전하면서 내려감
+# 3-1. 우를 기준으로 상우하의 c+1, 우, 하의 c+1, r+1이 비어있어야 함
+# 3-2. 이렇게 이동할 때 출구가 시계 방향으로 이동=> int((dr+1)%4)
+# 4. 정령은 가장 남쪽으로 이동
+# 4-1. 골렘의 출구가 다른 골렘과 인접하고 있으면 해당 출구로 다른 골렘으로 갈 수 있음
+# 5. 골렘의 몸이 숲 밖에 있으면 숲 초기화 => 이 때의 정령 위치는 최종 답에 반영 안함
+# 6. 최종적으로 정령들이 위치한 행의 총합을 출력
+from collections import deque
+anw = 0
+
+dx = [-1, 0, 1, 0]
+dy = [0, 1, 0, -1] # 상우하좌 dr
+R, C, K = map(int, input().split())
+gollem = [[] for _ in range(K+1)]
+gollem_direct = [0]*(K+1)
+
+for idx in range(1, K+1):
+    middle, dr = map(int, input().split()) #중심좌표, 방향
+    gollem[idx] = [1, middle-1]
+    gollem_direct[idx] = dr
+
+arr = [[0]*C for _ in range(R+3)]
+
+def move_gollem(idx):
+    gi, gj = 1, gollem[idx][1]
+    direct = gollem_direct[idx]
+    while True:
+        # 1. 아래로
+        if 0<=gi+2<R+3 and 0<=gj-1<C and 0<=gj+1<C and arr[gi+2][gj]==0 and arr[gi+1][gj-1]==0 and arr[gi+1][gj+1]==0:
+            gi, gj = gi+1, gj
+        # 2. 서쪽으로(왼)
+        elif 0<=gi-1 and gi+2<R+3 and 0<=gj-1<C and 0<=gj-2<C and arr[gi-1][gj-1]==0 and arr[gi][gj-2]==0 and arr[gi+1][gj-1]==0 and arr[gi+1][gj-2]==0 and arr[gi+2][gj-1]==0:
+            gi, gj = gi+1, gj-1
+            direct = int((direct-1)%4)
+        # 3. 동쪽으로(오)
+        elif 0<=gi-1 and gi+2<R+3 and 0<=gj+1<C and 0<=gj+2<C and arr[gi-1][gj+1]==0 and arr[gi][gj+2]==0 and arr[gi+1][gj+1]==0 and arr[gi+1][gj+2]==0 and arr[gi+2][gj+1]==0:
+            gi, gj = gi+1, gj+1
+            direct = int((direct+1)%4)
+        else:
+            # print(gi, gj, direct)
+            gollem_direct[idx] = direct
+            gollem[idx] = [gi, gj]
+            break
+    return  gi, gj
+
+def move_fr(idx):
+    fi, fj = gollem[idx]
+    max_row = fi
+    v = [[0]*C for _ in range(R+3)]
+    q = deque()
+    q.append((fi, fj))
+    v[fi][fj] = 1
+    while q:
+        ci, cj = q.popleft()
+        if ci>max_row:
+            max_row = ci
+        for dr in range(4):
+            ni, nj = ci+dx[dr], cj+dy[dr]
+            if 0<=ni<R+3 and 0<=nj<C and v[ni][nj]==0 and arr[ni][nj]!=0: #0이 아니어야 골렘
+                if arr[ni][nj] == arr[ci][cj]:
+                    q.append((ni, nj))
+                    v[ni][nj] = 1
+                else:
+                    # 현재 위치한 정령의 출구인지 확인
+                    gidx = arr[ci][cj]
+                    gi, gj = gollem[gidx]
+                    dirc = gollem_direct[gidx]
+                    ei, ej = gi+dx[dirc], gj+dy[dirc]
+                    if (ci, cj)==(ei, ej):
+                        v[ni][nj]=1
+                        q.append((ni, nj))
+    return max_row
+
+
+
+for idx in range(1, K+1): # 좌표 표시해야하니까 1부터
+    # 1. 골렘 내려보내기 move_gollem(idx) return=> 8, 1골렘 중심좌표
+    gi, gj = move_gollem(idx)
+    # 2-1. 골렘의 중심좌표가 0~2이면 리셋 시키기
+    if gi<4:
+        arr = [[0]*C for _ in range(R+3)]
+    else:
+        arr[gi][gj] = idx
+        for dr in range(4):
+            ni, nj = gi+dx[dr], gj+dy[dr]
+            arr[ni][nj] = idx
+    #     3-1. 아니면 정령 움직이기 move_fr(idx)
+        anw += move_fr(idx)-2
+        # print(idx, gollem[idx], gollem_direct[idx])
+        # print(arr)
+
+print(anw)
