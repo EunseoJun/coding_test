@@ -1,0 +1,174 @@
+# # 20251202
+# 소요시간: 1시간 40분
+# 회고
+# 힘 없는 상태에서 문제 이해하고 다시 풀었으니까 +30분은 해야할거 같다
+# 대략 2시간 좀 넘게 걸린다고 보면 될듯
+# 많이 성장했다 너무 잘했다!
+# 맛있는거 먹어라
+# 각 과정을 다 찍어서 의도대로 동작하는지 확인하는게 중요
+
+# # 택배 하자
+# N*N 크기의 정사각형 격자
+# 1. 택배 투입
+# 1-1. 택배는 직사각형 모양, 왼쪽 열의 위치 c, 가로크기 w, 세로크기 h, 각각의 택배번호 k
+# 1-2. 중력에 의해 아래로 떨어짐
+# 2. 택배 하차(좌)
+# 2-1. 쌓인 택배중에 왼쪽으로 이동했을 때 다른 택배와 부딪히지 않고 뺄 수 있는 택배 하차
+# 2-2. 여러개면 k가 작은 택배 먼저 하차
+# 3. 1개 하차 후=>떨어질 수 있는 택배 떨어짐
+# 4. 우측하차
+# 5. 택배가 모두 없어질 때까지 반복
+# 6. 하차되는 택배의 번호를 순서대로 출력
+from collections import deque
+dx = [0, 0]
+dy = [-1, 1] # 0=>좌, 1=>우
+N, M = map(int, input().split())
+num = [0]*M
+coor = [[] for _ in range(M)]
+size = [[] for _ in range(M)]
+post_body = [[] for _ in range(M)]
+for idx in range(M):
+    k, h, w, c = map(int, input().split())
+    coor[idx] = [0, c-1]
+    size[idx] = [h, w]
+    num[idx] = k
+    for i in range(h):
+        for j in range(w):
+            post_body[idx].append((i, j))
+
+alive = [0]*M
+arr = [[0]*N for _ in range(N)]
+def insert():
+    for idx in range(M):
+        if alive[idx] == 0:
+            update = True
+            si, sj = coor[idx]
+            while update:
+                for bi, bj in post_body[idx]:
+                    ni, nj = si+bi+1, sj+bj
+                    if 0<=ni<N and 0<=nj<N and arr[ni][nj]==0:
+                        pass
+                    else:
+                        coor[idx] = [si, sj]
+                        update = False
+                        break
+                if update:
+                    si += 1
+            si, sj = coor[idx]
+            for bi, bj in post_body[idx]:
+                arr[si+bi][sj+bj] = num[idx]
+
+def move_post_left(dr):
+    # 1. idx 돌면서 검사하고 can에 추가
+    cand = []
+    for idx in range(M):
+        if alive[idx] == 0:
+            update = True
+            ri, rj = -1, -1
+            si, sj = coor[idx]
+            q = deque()
+            q.append((si, sj))
+            while q:
+                ci, cj = q.popleft()
+                for bi, bj in post_body[idx]:
+                    ni, nj = ci+bi+dx[dr], cj+bj+dy[dr]
+                    if 0<=ni<N and 0<=nj<N and (arr[ni][nj]==0 or arr[ni][nj]==num[idx]):
+                        pass
+                    else:
+                        ri, rj = ci, cj
+                        update = False
+                        break
+                if update:
+                    q.append((ci+dx[dr], cj+dy[dr]))
+            # print(num[idx], rj) # 왼쪽으로 잘 밀리는지 확인 디버깅용
+            if rj == 0:
+                cand.append([num[idx],idx])
+    # 2. k 기준으로 sort
+    cand.sort(key=lambda x:x[0])
+    # 3. 택배 빼고 arr 제거, 출력하기
+    kidx, ridx = cand[0]
+    print(kidx)
+    alive[ridx] = 1
+    for i in range(N):
+        for j in range(N):
+            if arr[i][j] == kidx:
+                arr[i][j] = 0
+
+def gravity():
+    for idx in range(M):
+        if alive[idx] == 0:
+            update = True
+            oi, oj = coor[idx]
+            si, sj = coor[idx]
+            while update:
+                for bi, bj in post_body[idx]:
+                    ni, nj = si+bi+1, sj+bj
+                    if 0<=ni<N and 0<=nj<N and (arr[ni][nj]==0 or arr[ni][nj]==num[idx]):
+                        pass
+                    else:
+                        update = False
+                        break
+                if update:
+                    si += 1
+            if si!=oi:
+                # 좌표 갱신
+                coor[idx] = [si, sj]
+                # arr 비우기
+                for i in range(N):
+                    for j in range(N):
+                        if arr[i][j] == num[idx]:
+                            arr[i][j] = 0
+                # arr 갱신
+                si, sj = coor[idx]
+                for bi, bj in post_body[idx]:
+                    arr[si+bi][sj+bj] = num[idx]
+
+def move_post_right(dr):
+    # 1. idx 돌면서 검사하고 can에 추가
+    cand = []
+    for idx in range(M):
+        if alive[idx] == 0:
+            update = True
+            ri, rj = -1, -1
+            si, sj = coor[idx]
+            q = deque()
+            q.append((si, sj))
+            while q:
+                ci, cj = q.popleft()
+                for bi, bj in post_body[idx]:
+                    ni, nj = ci + bi + dx[dr], cj + bj + dy[dr]
+                    if 0 <= ni < N and 0 <= nj < N and (arr[ni][nj] == 0 or arr[ni][nj] == num[idx]):
+                        pass
+                    else:
+                        ri, rj = ci, cj
+                        update = False
+                        break
+                if update:
+                    q.append((ci + dx[dr], cj + dy[dr]))
+            # print(num[idx], rj) # 왼쪽으로 잘 밀리는지 확인 디버깅용
+            if rj == N-size[idx][1]:
+                cand.append([num[idx], idx])
+    # 2. k 기준으로 sort
+    cand.sort(key=lambda x: x[0])
+    # 3. 택배 빼고 arr 제거, 출력하기
+    kidx, ridx = cand[0]
+    alive[ridx] = 1
+    # 출력
+    print(kidx)
+    for i in range(N):
+        for j in range(N):
+            if arr[i][j] == kidx:
+                arr[i][j] = 0
+
+# 택배 내리기 => gravity
+# 살아있는 택배 중에서 내리기
+insert()
+while True:
+    # 2. 왼쪽에서 택배 빼기
+    move_post_left(0) # 0 => 왼쪽
+    if 0 not in alive:  break
+    gravity()
+    # 3. 오른쪽에서 택배 빼기
+    move_post_right(1) # 1 => 오른쪽
+    if 0 not in alive:  break
+    gravity()
