@@ -1,0 +1,111 @@
+# 20251202
+# 소요시간: 1시간 15분
+# 우선순위에 익숙해져서 그대로 구현했다가 조금 헤맸다
+
+# # 아기 상어
+# N*N 크기의 공간에 물고기 M마리 아기상어 1마리
+# 한 칸에는 물고기사 최대 1마리 존재함=> 1물고기 1칸
+# 아기 상어와 물고기는 모두 크기를 가지고 있음, 처음 아기상어 크기는 2
+# 아기 상어는 1초에 상하좌우 한 칸씩 이동
+# 아기 상어는 자신보다 큰 물고기가 있는 칸은 지나갈 수 없고, 나머지는 가능
+# 아기상어는 자신보다 작은 물고기만 먹을 수 있음
+# 아기 상어의 움직임
+# 1. 더 이상 먹을 수 있는 물고기가 없으면 엄마상어 도움 요청
+# 2. 먹을 수 있는 물고기 1마리, 물고기 먹으러 감
+# 3. 먹을 수 있는 물고기가 1마리보다 많으면, 가까운 물고기 먹으러 감
+# 3-1. 거리는 아기상어가 있는 칸에서 물고기 먹으러 이동하는 칸의 개수의 최소값
+# 3-2. 거리가 가까운 물고기가 많으면 가장 위에 있는 물고기>가장 왼쪽에 있는 물고기
+# => r작>c작
+# 4. 아기상어는 자신의 크기와 같은 수의 물고기를 먹을 때마다 크기 +1
+# => 2이면 물고기 두마리 먹으면 크기 3
+# 5. 몇 초동안 엄마 상어에게 도움을 요청하지 않고 물고기를 잡아먹을 수 있는지 출력
+
+# import sys
+# sys.stdin = open('input_6.txt', 'r')
+
+from collections import deque
+
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+N = int(input())
+arr = [list(map(int, input().split())) for _ in range(N)]
+shark = 2
+si, sj = -1, -1
+for i in range(N):
+    for j in range(N):
+        if arr[i][j] == 9:
+            si, sj = i, j
+            arr[i][j] = -1
+            break
+
+def find_fish():
+    cand = []
+    min_dist = N*N*2
+    v = [[0]*N for _ in range(N)]
+    q = deque()
+    q.append((si, sj, 0))
+    v[si][sj] = 1
+    while q:
+        ci, cj, dist = q.popleft()
+        if min_dist>=dist:
+            for dr in range(4):
+                ni, nj = ci+dx[dr], cj+dy[dr]
+                if 0<=ni<N and 0<=nj<N and arr[ni][nj]<=shark and v[ni][nj]==0:
+                    q.append((ni, nj, dist+1))
+                    v[ni][nj] = 1
+                    if arr[ni][nj]<shark and arr[ni][nj]!=0 and arr[ni][nj]!=-1 and dist<min_dist:
+                        cand = [[dist, ni, nj]]
+                        min_dist = dist
+                    elif arr[ni][nj]<shark and arr[ni][nj]!=0 and arr[ni][nj]!=-1 and dist==min_dist:
+                        cand.append([dist, ni, nj])
+
+    if cand==[]:
+        return 0
+    else:
+        # print(si, sj)
+        # print(cand)
+        cand.sort()
+        # 역 추적해서 찾아내기
+        _, ti, tj = cand[0]
+        v = [[0]*N for _ in range(N)]
+        q.append((si, sj, []))
+        while q:
+            ci, cj, road = q.popleft()
+            if (ci, cj) == (ti, tj):
+                # print('target', road[-1])
+                return len(road), ci, cj
+            for dr in range(4):
+                ni, nj = ci+dx[dr], cj+dy[dr]
+                if 0<=ni<N and 0<=nj<N and arr[ni][nj]<=shark and v[ni][nj]==0:
+                    v[ni][nj] = 1
+                    temp = road[:]
+                    temp.append((ni, nj))
+                    q.append((ni, nj, temp))
+
+t = 0
+feed = 0
+while True:
+    cnt = 0
+    for i in range(N):
+        for j in range(N):
+            if arr[i][j] > 0:
+                cnt+=1
+    if cnt == 0:    break
+    # 1. find_fish() => return 0, or [(ni, nj),[],,,] 움직일 좌표
+    # find_fish()
+    # break
+    coor = find_fish()
+    if coor == 0:
+        break
+    else:
+        tm, ni, nj = coor
+        t += tm
+        arr[si][sj] = 0
+        arr[ni][nj] = -1
+        si, sj = ni, nj
+        feed+=1
+        if feed==shark:
+            shark+=1
+            feed = 0
+
+print(t)
