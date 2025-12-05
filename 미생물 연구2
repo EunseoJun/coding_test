@@ -1,0 +1,175 @@
+# 20251205
+# 소요시간 2시간 10분
+# 회고
+# 정신놓고 풀어서 틀릴줄 알았는데 한 번에 맞췄다
+# 미생물 몸 크기 같은걸 한 번에 구해서
+# 전에 풀었을 때보다 실행속도가 402->245로 줄었다
+# 이번에도 삽질을 좀 많이 했는데,, 역시 정신 차리고 한 번에 구현해야하는거 같다
+
+# # 미생물 연구
+# N*N 크기의 격자
+# 1. 미생물 투입
+# 1-1. 좌측 하단 좌표가 (r1, c1), 우측 상단 좌표가 (r1, c1) => 미생물들 몸통 만들기
+# 1-2. 영역 내에 다른 미생물 존재하면 잡아먹음
+# 1-3. 기존 미생물 무리가 잡아먹히면서 둘 이상 조각나면 없앰
+# 2. 배양 용기 이동
+# 2-1. 배양 용기의 크기도 기존 용기와 동일
+# 2-2. 기존 비양 용기 무리 중 가장 큰 영역을 차지하는 무리 하나 선택, 이런 무리가 둘 이상이면 먼저 투입된 미생물
+# 2-3. 배양 용기의 범위를 벗어나지 않고, 다른 미생물과 겹치면 안됨
+# 2-4. 최대한 j가 작은>최대한 i가 큰 위치로 옮겨야 함
+# 2-5. 어디에도 둘 수 없으면 사라짐
+# 3. 실험 결과 기록
+# 3-1. 인접한 무리를 확인, 인접한 두 무리의 크기를 곱한만큼의 성과를 얻음
+# 4. 각 실험의 성과를 출력
+
+import sys
+sys.stdin = open('input_6.txt', 'r')
+from collections import deque
+
+dx = [-1, 1, 0, 0]
+dy =[0, 0, -1, 1]
+
+N, Q = map(int, input().split())
+coor_micro = [list(map(int, input().split())) for _ in range(Q)]
+coor_micro.insert(0, [])
+micro_body = [[]]
+micro = [[]]
+arr = [[0]*N for _ in range(N)]
+for idx in range(1, Q+1):
+    c1, r1, c2, r2 = coor_micro[idx] # 좌하우상
+    si, sj = N-r2, c1
+    micro.append((si, sj))
+    temp = []
+    for i in range(N-r2, N-r1):
+        for j in range(c1, c2):
+            temp.append((i-(N-r2), j-c1))
+            # arr[i][j] = idx
+    micro_body.append(temp)
+    # print(len(micro_body[idx]), micro_body)
+alive = [0]*(Q+1)
+alive[0] = 1
+
+def insert(idx):
+    body_size = [0]*(Q+1)
+    met = set()
+    # 1. 투입
+    mi, mj = micro[idx]
+    for si, sj in micro_body[idx]:
+        if arr[si+mi][sj+mj] > 0:
+            met.add(arr[si+mi][sj+mj])
+        arr[si+mi][sj+mj] = idx
+    # 2. 두조각 이상 된 애들 지워주기
+    v = [[0]*N for _ in range(N)]
+    cnt = [0]*(Q+1)
+    for i in range(N):
+        for j in range(N):
+            if v[i][j] == 0 and arr[i][j]!=0:
+                q = deque()
+                q.append((i, j))
+                v[i][j] = 1
+                value = arr[i][j]
+                body_size[value] += 1
+                cnt[value] += 1
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<N and 0<=nj<N and arr[ni][nj]==value and v[ni][nj]==0:
+                            v[ni][nj] = 1
+                            q.append((ni, nj))
+                            body_size[value] += 1
+    for nidx in range(1, idx):
+        if cnt[nidx]>1:
+            for i in range(N):
+                for j in range(N):
+                    body_size[nidx] = 0
+                    alive[nidx] = 1
+                    if arr[i][j] == nidx:
+                        arr[i][j] = 0
+    seq = []
+    for bidx in range(1, Q+1):
+        if alive[bidx] == 0 and body_size[bidx] != 0:
+            seq.append((-body_size[bidx], bidx))
+    seq.sort()
+    return seq
+
+def move(t):
+    body_cnt = [0]*(Q+1)
+    touch = set()
+    global arr
+    cand = []
+    temp_body = [[] for _ in range(Q+1)]
+    v = [[0]*N for _ in range(N)]
+    seq = []
+    for i in range(N):
+        for j in range(N):
+            if v[i][j]==0 and arr[i][j] != 0:
+                tbody = [(0, 0)]
+                bdsize = 1
+                v[i][j] = 1
+                val = arr[i][j]
+                q = deque()
+                q.append((i, j))
+                while q:
+                    ci, cj = q.popleft()
+                    for dr in range(4):
+                        ni, nj = ci+dx[dr], cj+dy[dr]
+                        if 0<=ni<N and 0<=nj<N and v[ni][nj]==0 and arr[ni][nj]==val:
+                            bdsize += 1
+                            v[ni][nj] = 1
+                            tbody.append((ni-i, nj-j))
+                            q.append((ni, nj))
+                temp_body[val] = tbody
+    for bidx in range(1, Q+1):
+        if len(temp_body[bidx]) > 0:
+            cand.append((-len(temp_body[bidx]), bidx))
+    cand.sort()
+
+    # 재배치
+    container = [[0]*N for _ in range(N)]
+    for _, sidx in cand:
+        ed = True
+        mv = True
+        for j in range(N):
+            if ed == True:
+                for i in range(N-1, -1, -1):
+                    if ed == True:
+                        mv = True
+                        si, sj = i, j
+                        for bi, bj in temp_body[sidx]:
+                            ni, nj = si+bi, sj+bj
+                            if 0<=ni<N and 0<=nj<N and container[ni][nj]==0:
+                                pass
+                            else:
+                                mv = False
+                                break
+                        if mv:
+                            for bi, bj in temp_body[sidx]:
+                                ni, nj = si + bi, sj + bj
+                                container[ni][nj] = sidx
+                                for dr in range(4):
+                                    ti, tj = ni+dx[dr], nj+dy[dr]
+                                    if 0<=ti<N and 0<=tj<N and container[ti][tj]!=0 and container[ti][tj]!=sidx:
+                                        key = (min(sidx, container[ti][tj]), max(sidx, container[ti][tj]))
+                                        touch.add(key)
+
+                            ed = False
+    arr = [row[:] for row in container]
+    for bidx in range(1, Q+1):
+        if len(temp_body[bidx])!=0:
+            body_cnt[bidx] = len(temp_body[bidx])
+    # print(touch)
+    # print(body_cnt)
+    return body_cnt, list(touch)
+for t in range(1, Q+1):
+    score = 0
+    # 1. 미생물 투입 => insert(t) => [(body_size, idx), ...]
+    seq = insert(t) # body_size 필요 없음 ㅠㅠ 이따 지우기
+    # 2. 배양 용기 이동 => move(seq) => t번 미생물까지 body 길이로 sort해서 순서대로 이동하기
+    bdcnt, touch = move(t)
+    for th in touch:
+        m1, m2 = th
+        score += bdcnt[m1] * bdcnt[m2]
+    print(score)
+    # 3. 인접 무리 확인 => get_score()
+    # get_score()
