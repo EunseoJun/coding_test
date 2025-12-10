@@ -1,0 +1,47 @@
+# 테트로미노
+N, M = map(int, input().split())
+dx = [-1, 1, 0, 0]
+dy = [0, 0, -1, 1]
+arr = [list(map(int, input().split())) for _ in range(N)]
+visited = [[False]*M for _ in range(N)]
+max_value = 0
+
+def another(ci, cj):
+    global max_value
+    temp = []
+    coor = []
+    value = 0
+    for dr in range(4):
+        ni, nj = ci+dx[dr], cj+dy[dr]
+        if 0<=ni<N and 0<=nj<M:
+            temp.append(arr[ni][nj])
+            coor.append((ni, nj))
+    if len(temp)==4:
+        temp.sort(reverse=True)
+        temp.pop()
+        value = sum(temp)+arr[ci][cj]
+    elif len(temp)==3:
+        value = sum(temp)+arr[ci][cj]
+    max_value = max(max_value, value)
+
+def tetromino(ci, cj, length, value):
+    global max_value
+    if length==4:
+        max_value = max(max_value, value)
+        return
+    for dr in range(4):
+        ni, nj = ci+dx[dr], cj+dy[dr]
+        if 0<=ni<N and 0<=nj<M and not visited[ni][nj]:
+            visited[ni][nj] = True
+            tetromino(ni, nj, length+1, value+arr[ni][nj])
+            visited[ni][nj] = False
+
+for i in range(N):
+    for j in range(M):
+        # ㅗ 모양
+        another(i, j)
+        # 나머지
+        visited[i][j] = True
+        tetromino(i, j, 1, arr[i][j])
+        visited[i][j] = False
+print(max_value)
