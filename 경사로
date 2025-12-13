@@ -1,0 +1,63 @@
+# 14890
+# 경사로
+# import sys
+# sys.stdin = open('input_6.txt', 'r')
+
+N, L = map(int, input().split())
+arr = [list(map(int, input().split())) for _ in range(N)]
+possible = 0
+def check_row(row, idx, l, v):
+    if l<0:
+        if 0<=idx+l:
+            temp_row = row[idx+l:idx]
+            temp_row = set(temp_row)
+            temp_v = v[idx+l:idx]
+            if temp_v.count(1)==0 and len(temp_row) == 1:  return True
+        else:   return False
+    elif l>0:
+        if idx+l<=N:
+            temp_row = row[idx:idx+l]
+            temp_row = set(temp_row)
+            temp_v = v[idx:idx+l]
+            if temp_v.count(1)==0 and len(temp_row) == 1:  return True
+        else:   return False
+
+for _ in range(2):
+    for row in arr:
+        init_val = row[0]
+        update = True
+        v = [0]*N
+        for idx in range(1, N):
+            if init_val == row[idx]:
+                pass
+            elif row[idx]-init_val==1:
+                # 현재가 더 크니까 작은쪽으로 슬라이싱
+                ps = check_row(row, idx, -L, v)
+                if ps:
+                    for vi in range(idx-L, idx):
+                        v[vi] = 1
+                    init_val = row[idx]
+                else:
+                    update = False
+                    break
+            elif row[idx]-init_val==-1:
+                ps = check_row(row, idx, L, v)
+                if ps:
+                    init_val = row[idx]
+                    for vi in range(idx, idx+L):
+                        v[vi] = 1
+                else:
+                    update = False
+                    break
+            else:
+                update = False
+        if update:
+            # print(row)
+            possible += 1
+    temp_arr = [[0]*N for _ in range(N)]
+    for i in range(N):
+        for j in range(N):
+            temp_arr[j][N-i-1] = arr[i][j]
+    arr = [row[:] for row in temp_arr]
+
+print(possible)
