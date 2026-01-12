@@ -1,0 +1,112 @@
+# # 회고
+# 풀이 자체는 맞았지만 최적화를 다시 생각해볼것
+# 인덱스로 관리해서 리스트를 계속 늘리는 방식이 아니라
+# 칸마다 파이어볼 정보 자체를 두는 형식으로 관리하기
+
+# # 마법사 상어와 파이어볼
+# N*N 크기의 격자에 파이어볼 M개 발사
+# 파이어볼은 각자의 위치에서 이동 대기
+# i번 파이어볼의 위치는 (ri, ci), 질량은 mi, 방향 d, 속력 s
+# 격자는 1번부터 N번이 연결되어 있음 => int((d+ci)%4)
+# 파이어볼의 방향은 어떤 칸과 인접한 8개의 방향=> 시계 방향
+# 명령
+# 1. 모든 파이어볼이 자신의 방향으로 s칸만큼 이동함=>이동하는 중에 같은 칸에 여러 개의 파이어볼 존재 할 수 있음
+# => 각 파이어볼의 좌표 관리하기, 각 칸은 set, 최종 위치 저장하기
+# 2. 이동이 모두 끝난 뒤, 2개 이상의 파이어볼이 있는 칸에서는 다음과 같은 일이 일어남
+# 2-1. 같은 칸에 있는 파이어볼은 모두 하나로 합쳐짐
+# 2-2. 파이어볼은 4개로 나누어짐
+# 2-3. 나누어진 파이어볼의 질량, 속력, 방향
+# 2-3-1. 질량: (파이어볼 질량 합)//5
+# 2-3-2. 속력: ((파이어볼 속력 합)//(합쳐진 파이어 볼 개수))
+# 2-3-3. 합쳐진 파이어볼 방향 모두 홀수 or 모두 짝수 => 0,2,4,6
+#     아니면 => 1, 3, 5, 7
+# 2-3-4. 질량이 0인 파이어볼은 소멸
+# 3. 상어가 이동은 K번 명령한 후 남아있는 파이어볼 질량의 합
+# import sys
+# sys.stdin = open('input_6.txt', 'r')
+
+dxy = [(-1,0),(-1,1),(0,1),(1,1),(1,0),(1,-1),(0,-1),(-1,-1)]
+N, M, K = map(int, input().split())
+fb = []
+fb_d = []
+fb_w = []
+fb_s = []
+alive = [0]*M
+arr = [[[] for _ in range(N)] for _ in range(N)]
+for idx in range(M):
+    temp = list(map(int, input().split()))
+    fb.append([temp[0]-1, temp[1]-1])
+    arr[fb[idx][0]][fb[idx][1]].append(idx)
+    fb_w.append(temp[2])
+    fb_s.append(temp[3])
+    fb_d.append(temp[4])
+
+def move():
+    for idx in range(len(fb)):
+        if alive[idx] != 1:
+            ci, cj = fb[idx][0], fb[idx][1]
+            # print(idx)
+            arr[ci][cj].remove(idx)
+            cd, cs = fb_d[idx], fb_s[idx]
+            ni, nj = (ci+cs*dxy[cd][0])%N, (cj+cs*dxy[cd][1])%N
+            # 좌표 이동함
+            arr[ni][nj].append(idx)
+            # 파이어볼 정보 업데이트하기
+            fb[idx] = [ni, nj]
+
+def sep():
+    for i in range(N):
+        for j in range(N):
+            if len(arr[i][j])>1:
+                al = len(arr[i][j])
+                weight = 0
+                speed = 0
+                dr_odd = -1
+                all_dr = True
+                arr_idx = arr[i][j][:]
+                for idx in arr_idx:
+                    # arr안의 파이어볼 무게, 속력 합치면서 파이어볼 죽음처리
+                    alive[idx] = 1
+                    arr[i][j].remove(idx) # arr에서 지우기
+                    weight += fb_w[idx]
+                    speed += fb_s[idx]
+                    # 방향 전부 홀수 혹은 짝수인지 확인
+                    if dr_odd==-1:
+                        dr_odd = fb_d[idx]%2
+                    else:
+                        if all_dr and dr_odd != fb_d[idx]%2:
+                            all_dr = False
+                if weight//5>0:
+                    nw = weight//5
+                    ns = speed//al
+                    dr = []
+                    if all_dr:
+                        # 방향 맞춰서
+                        dr = [0, 2, 4, 6]
+                    else:
+                        dr = [1, 3, 5, 7]
+                    for nfb in range(4):
+                        fb.append([i, j])
+                        fb_w.append(nw)
+                        fb_s.append(ns)
+                        fb_d.append(dr[nfb])
+                        alive.append(0)
+                        arr[i][j].append(len(fb)-1)
+for t in range(K):
+    # 파이어볼 다 소멸하면 종료
+    if not 0 in alive:  break
+    # 1. 파이어볼 이동 => move()
+    move()
+    # 2. arr 돌면서 length 2 이상이면
+    # 파이어볼 분열 => sep() => 파이어볼 합치고 분열해서 fb에 추가하기
+    # print(arr)
+    sep()
+    # print(arr)
+
+# print(alive)
+# print(fb_w)
+ans = 0
+for idx in range(len(alive)):
+    if alive[idx] == 0:
+        ans += fb_w[idx]
+print(ans)
