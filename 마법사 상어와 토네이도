@@ -1,0 +1,76 @@
+# # 마법사 상어와 토네이도
+# N*N 크기의 격자에서 토네이도 연습
+# 토네이도를 시전하면 격자의 가운데부터 토네이도 이동 시작됨
+# 토네이도는 한 번에 1칸
+# 토네이도가 한 칸 이돌할 때 모래는 일정 비율로 흩날림
+# 모래가 있는 칸으로 이동 => 모래 더해짐
+# 방향따라 비율은 회전함
+# 토네이도는 0,0까지 회전함.
+# 격자의 밖으로 나간 모래의 양 구하기
+import sys
+sys.stdin = open('input_6.txt', 'r')
+
+N = int(input())
+arr = [list(map(int, input().split())) for _ in range(N)]
+dx = [0, 1, 0, -1] # 좌하우상
+dy = [-1, 0, 1, 0]
+
+def get_coor():
+    coor = []
+    dr = 0
+    ci, cj = N//2, N//2
+    length = 1
+    cnt = 0
+    trig = True
+    while trig:
+        if cnt != 2:
+            cnt += 1
+            for i in range(length):
+                ci, cj = ci+dx[dr], cj+dy[dr]
+                if (ci, cj) == (0, 0):
+                    coor.append((ci, cj, dr))
+                    trig = False
+                    break
+                coor.append((ci, cj, dr))
+            dr = (dr + 1) % 4
+        elif cnt==2:
+            cnt = 0
+            length += 1
+    return coor
+
+# 1. 토네이도 좌표 구하기
+coor = get_coor()
+# print(coor)
+spread_org = [(0.05,0,-2), (0.1,-1,-1),(0.1,1,-1),(0.07,-1,0),(0.07,1,0),(0.02,-2,0),(0.02,2,0),(0.01,-1,1),(0.01,1,1)]
+spread = [spread_org, #좌
+          [(v,-y,x) for v,x,y in spread_org], #하
+          [(v,x,-y) for v,x,y in spread_org], #우
+          [(v,y,x) for v,x,y in spread_org]] #상
+
+# print(coor)
+result = 0
+for i, j, dr in coor:
+    mv_sd = 0
+    for v, di, dj in spread[dr]:
+        ni, nj = i+di, j+dj
+        sd = int(arr[i][j]*v)
+        mv_sd += sd
+        if 0<=ni<N and 0<=nj<N:
+            arr[ni][nj] += sd
+        else:
+            result+=sd
+    # 알파위치 값
+    ai, aj = i+dx[dr], j+dy[dr]
+    remained_sand = arr[i][j] - mv_sd
+    if 0<=ai<N and 0<=aj<N:
+        arr[ai][aj] += remained_sand
+    else:
+        result+= remained_sand
+    arr[i][j] = 0
+
+
+print(result)
+
+
+
+
