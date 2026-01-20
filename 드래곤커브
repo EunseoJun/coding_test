@@ -1,0 +1,46 @@
+# 회고
+# 좌표값 굳이 안바꿔도 되는 경우가 있음
+# 안바꾸는게 아니라 바꾸면 틀리는 경우 잘 확인하기
+# x, y좌표값을 아직도 헷갈려하는거 같다
+# x, y로 주어지는 경우 잘 확인하기
+
+# 드래곤 커브
+# k세대 드래곤 커브는 k-1세대의 드래곤 커브를 끝 점 기준 90도 시계방향 회전 후 끝에 붙인것
+# 100*100 격자 위에 드래곤 커브 N개
+# 정사각형의 네 꼭짓점이 모두 드래곤커브의 일부인 정사각형 개수 구하기
+# import sys
+# sys.stdin = open("input_6.txt", 'r')
+
+dx = [1, 0, -1, 0]
+dy = [0, -1, 0, 1]
+
+N = int(input())
+curve = []
+for _ in range(N):
+    j, i, d, g = map(int, input().split())
+    curve.append((j, i, d, g))
+arr = [[False]*101 for _ in range(101)]
+
+# 드래곤커브 만들기
+for idx in range(len(curve)):
+    j, i, d, g = curve[idx]
+    vector = [d]
+    for gn in range(g):
+        temp = []
+        for idx in range(len(vector)-1, -1, -1):
+            temp.append(int((vector[idx]+1)%4))
+        vector.extend(temp)
+
+    arr[i][j] = True
+    for dr in vector:
+        j = j+dx[dr]
+        i = i+dy[dr]
+        arr[i][j] = True
+
+ans = 0
+for i in range(100):
+    for j in range(100):
+        if arr[i][j] and arr[i+1][j] and arr[i][j+1] and arr[i+1][j+1]:
+            ans += 1
+print(ans)
+
