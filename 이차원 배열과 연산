@@ -1,0 +1,101 @@
+# 회고
+# 어찌저찌 풀긴 했는데 풀어가면서 로직에 변화를 주는게 안좋은거 같다
+# 처음부터 구상 다하고 구현하는 습관 들이기
+# # 이차원 배열과 연산
+# 크기가 3*3인 배열 A, 1초 지날 때마다 배열에 연산 적용
+# R: 배열 A의 모든 행에 대해 정렬 수행, 행 개수>=열 개수일때
+# C: 배열 A의 모든 열에 대해 정렬 수행, 열 개수>행 개수일때
+#
+# 각 수가 몇 번 나왔는지, 수의 등장 횟수가 커지는 순으로
+# 여러개면 키의 수가 커지는 순으로 정렬=>오름차순
+# 그 후 배열 A에 정렬 결과 다시 넣기
+# 정렬 결과 넣을 때는 수와 등장 횟수 모두 넣기, 순서는 수가 먼저
+#
+# R정렬시 => 가장 큰 행을 기준으로 모든 행의 크기가 변함
+# C정렬시 => 가장 큰 열을 기준으로 모든 열의 크기가 변함
+# 0을 패딩, 정렬할 때 0은 무시!
+# arr의 r, c에 들어있는 값이 k가 되기 위한 최소 시간
+# 100초가 지나도 k가 되지 않으면 -1을 출력
+
+# import sys
+# sys.stdin = open('input_6.txt', 'r')
+
+r, c, k = map(int, input().split())
+r, c = r-1, c-1
+arr = [list(map(int, input().split())) for _ in range(3)]
+de = True
+
+def padding(temp_arr, mx_len):
+    result = []
+    for idx in range(len(temp_arr)):
+        row = temp_arr[idx]
+        if len(row)<mx_len:
+            iteration = mx_len - len(row)
+            for _ in range(iteration):
+                row.append(0)
+            result.append(row)
+        else:
+            result.append(row)
+    return result
+
+
+def RCalc():
+    global arr
+    mx_len = 0
+    temp_arr = []
+    for idx in range(len(arr)):
+        val = {}
+        temp = arr[idx]
+        for v in temp:
+            if v==0:    continue
+            cnt = val.get(v, 0)
+            val[v] = cnt+1
+        # value 기준 정렬 + key 기준 오름차순 정렬
+        sort_val = sorted(val.items(), key=lambda x:(x[1], x[0]))
+        temp = []
+        for k, v in sort_val:
+            temp.extend([k, v])
+        temp_arr.append(temp)
+        if len(temp)>mx_len:    mx_len=len(temp)
+    return temp_arr, mx_len
+    # arr = padding(temp_arr, mx_len)
+
+def CCalc():
+    global arr
+    r = len(arr)
+    c = len(arr[0])
+    carr = []
+    for cidx in range(c):
+        temp = []
+        for ridx in range(r):
+            if arr[ridx][cidx]==0:  continue
+            temp.append(arr[ridx][cidx])
+        carr.append(temp)
+    arr = carr
+    temp_arr, mx_len = RCalc()
+    temp_arr = padding(temp_arr, mx_len)
+    new_arr = []
+    for j in range(len(temp_arr[0])):
+        temp_list = []
+        for i in range(len(temp_arr)):
+            temp_list.append(temp_arr[i][j])
+        new_arr.append(temp_list)
+    arr = new_arr
+
+for t in range(101):
+    if r<len(arr) and c<len(arr[0]):
+        if arr[r][c] == k:
+            de = False
+            print(t)
+            break
+
+    rl, cl = len(arr), len(arr[0])
+    if rl>=cl:
+        temp_arr, mx_len = RCalc()
+        arr = padding(temp_arr, mx_len)
+
+    elif cl>rl:
+        CCalc()
+
+if de:
+    print(-1)
